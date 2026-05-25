@@ -1,0 +1,1425 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#2aabee" />
+    <title>Gefest Cl</title>
+    <style>
+:root {
+  color-scheme: light;
+  --bg: #eef6fb;
+  --surface: #ffffff;
+  --surface-2: #f7fbfe;
+  --text: #142233;
+  --muted: #78889a;
+  --line: #dceaf3;
+  --blue: #2aabee;
+  --blue-dark: #168dcc;
+  --blue-soft: #e5f6fd;
+  --green: #30b979;
+  --yellow: #f5b947;
+  --red: #ef5b66;
+  font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: linear-gradient(180deg, #f8fbff 0%, var(--bg) 100%);
+  color: var(--text);
+}
+
+button, input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.mobile-frame {
+  width: min(100vw, 430px);
+  min-height: 100vh;
+  margin: 0 auto;
+  background: #f6f9fc;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  box-shadow: 0 0 0 1px rgba(20, 34, 51, 0.05), 0 24px 70px rgba(36, 81, 115, 0.15);
+}
+
+.app-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 16px 14px;
+  background: rgba(255, 255, 255, 0.94);
+  border-bottom: 1px solid var(--line);
+  backdrop-filter: blur(16px);
+}
+
+.app-title {
+  font-size: 23px;
+  line-height: 1.1;
+  font-weight: 780;
+  letter-spacing: 0;
+}
+
+.app-subtitle {
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.avatar {
+  width: 38px;
+  height: 38px;
+  border: 0;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #fff;
+  font-weight: 780;
+}
+
+.screen-body {
+  min-height: 0;
+  overflow: auto;
+  padding: 16px 14px 20px;
+}
+
+h2 {
+  margin: 20px 2px 10px;
+  color: var(--blue-dark);
+  font-size: 12px;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+small {
+  display: block;
+  margin-top: 4px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.primary, .secondary {
+  min-height: 48px;
+  border: 0;
+  border-radius: 15px;
+  padding: 0 16px;
+  font-weight: 760;
+}
+
+.primary {
+  background: var(--blue);
+  color: #fff;
+  box-shadow: 0 10px 24px rgba(42, 171, 238, 0.22);
+}
+
+.secondary {
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.wide { width: 100%; }
+
+.draft-card, .upload-card, .material, .source-field, .photo-card, .notice, .warning, .report-preview, .summary-grid, .profile-card, .accordion {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+}
+
+.draft-card, .profile-card {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+}
+
+.profile-card {
+  background: linear-gradient(135deg, #ffffff 0%, #eef9ff 100%);
+}
+
+.muted-card { background: rgba(255, 255, 255, 0.7); }
+
+.site-mark {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  font-weight: 800;
+}
+
+.site-mark.small { font-size: 18px; }
+
+.progress {
+  height: 7px;
+  margin-top: 10px;
+  background: #e2edf5;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+}
+
+.quick-grid, .field-grid, .photo-grid, .summary-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.quick-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.quick-grid button {
+  min-height: 74px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 730;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 62px;
+  min-height: 25px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 760;
+  white-space: nowrap;
+}
+
+.badge-blue { background: var(--blue-soft); color: var(--blue-dark); }
+.badge-green { background: #e8f8f1; color: #199764; }
+.badge-yellow { background: #fff5dc; color: #a56c00; }
+.badge-red { background: #fff0f2; color: #bf3342; }
+
+.source-field {
+  min-height: 76px;
+  padding: 12px;
+}
+
+.source-field > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.source-field span:first-child {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.source-field strong {
+  display: block;
+  font-size: 16px;
+  line-height: 1.25;
+}
+
+.source-field.review {
+  background: #fffdf7;
+  border-color: #f5dc97;
+}
+
+.input-field {
+  display: block;
+  margin-bottom: 10px;
+}
+
+.input-field span {
+  display: block;
+  margin: 0 2px 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.input-field input {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 0 12px;
+  background: var(--surface);
+  color: var(--text);
+  outline: none;
+}
+
+.input-field input:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(42, 171, 238, 0.12);
+}
+
+.triple {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.upload-card {
+  display: grid;
+  grid-template-columns: 46px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  margin-bottom: 10px;
+  position: relative;
+}
+
+.file-icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 15px;
+  display: grid;
+  place-items: center;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  font-weight: 800;
+}
+
+.file-button {
+  position: absolute;
+  right: 12px;
+  bottom: 10px;
+  color: var(--blue-dark);
+  font-size: 11px;
+  font-weight: 720;
+  overflow: hidden;
+}
+
+.file-button input, .photo-action input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+}
+
+.notice {
+  padding: 14px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.table {
+  overflow: auto;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.table-row {
+  min-width: 610px;
+  display: grid;
+  grid-template-columns: repeat(var(--cols, 6), minmax(80px, 1fr));
+  border-bottom: 1px solid var(--line);
+}
+
+.table-row:last-child { border-bottom: 0; }
+
+.table-row span {
+  padding: 10px 8px;
+  border-right: 1px solid var(--line);
+  font-size: 12px;
+  line-height: 1.25;
+}
+
+.table-row span:last-child { border-right: 0; }
+
+.table-row.head {
+  background: #e8f7fd;
+  color: var(--blue-dark);
+  font-weight: 800;
+}
+
+.materials {
+  display: grid;
+  gap: 8px;
+}
+
+.material {
+  display: grid;
+  grid-template-columns: 38px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 11px;
+}
+
+.material > span {
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--surface-2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.material.mismatch {
+  border-color: #f5dc97;
+  background: #fffdf7;
+}
+
+.photo-grid {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+.photo-card {
+  min-height: 132px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: linear-gradient(145deg, #ffffff, #edf8ff);
+}
+
+.photo-card.done {
+  border-color: rgba(48, 185, 121, .35);
+  background: linear-gradient(145deg, #ffffff, #edfff6);
+}
+
+.photo-action {
+  position: relative;
+  width: 38px;
+  height: 38px;
+  border-radius: 13px;
+  display: grid;
+  place-items: center;
+  background: var(--surface);
+  color: var(--blue-dark);
+  font-size: 20px;
+  font-weight: 800;
+  overflow: hidden;
+}
+
+.summary-grid {
+  grid-template-columns: repeat(3, 1fr);
+  padding: 18px 10px;
+}
+
+.summary-grid.compact {
+  margin-bottom: 12px;
+  padding: 13px 8px;
+}
+
+.summary-grid div {
+  text-align: center;
+}
+
+.summary-grid strong {
+  display: block;
+  color: var(--green);
+  font-size: 28px;
+}
+
+.summary-grid.compact strong {
+  font-size: 23px;
+}
+
+.summary-grid strong.yellow { color: var(--yellow); }
+.summary-grid strong.red { color: var(--red); }
+
+.summary-grid span {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.warning {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 8px;
+  padding: 12px;
+  background: #fff9ea;
+  border-color: #f4d181;
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.warning:first-letter {
+  color: var(--yellow);
+  font-weight: 900;
+}
+
+.channel-row {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.channel-row button {
+  min-height: 62px;
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 760;
+}
+
+.channel-row button.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.report-preview {
+  margin: 18px 0 12px;
+  padding: 14px;
+}
+
+.report-preview h2 {
+  margin-top: 0;
+}
+
+.report-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-height: 54px;
+  margin-bottom: 10px;
+  padding: 0 14px;
+  border-radius: 14px;
+  background: var(--blue);
+  color: #fff;
+}
+
+.report-head span {
+  border-radius: 999px;
+  padding: 7px 10px;
+  background: rgba(255,255,255,.18);
+  font-size: 11px;
+  font-weight: 760;
+}
+
+.report-row {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.report-row span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 720;
+}
+
+.report-row b {
+  font-size: 13px;
+}
+
+.report-actions {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.report-actions button {
+  min-height: 38px;
+  border: 0;
+  border-radius: 12px;
+  background: #edf3f7;
+  color: var(--muted);
+  font-weight: 720;
+}
+
+.tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  min-height: 64px;
+  background: rgba(255,255,255,.96);
+  border-top: 1px solid var(--line);
+}
+
+.tab {
+  border: 0;
+  background: transparent;
+  color: #8998a8;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 720;
+}
+
+.tab {
+  font-size: 12px;
+}
+
+.tab span {
+  width: 20px;
+  height: 20px;
+  border-radius: 8px;
+  background: currentColor;
+  opacity: .18;
+}
+
+.tab.active {
+  color: var(--blue-dark);
+}
+
+.accordion {
+  margin-bottom: 9px;
+  overflow: hidden;
+}
+
+.accordion-head {
+  width: 100%;
+  min-height: 48px;
+  border: 0;
+  background: #dff2c5;
+  display: grid;
+  grid-template-columns: 34px 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 9px 10px;
+  color: var(--text);
+  text-align: left;
+}
+
+.accordion-head strong {
+  min-width: 0;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.plus {
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  display: grid;
+  place-items: center;
+  background: rgba(255, 255, 255, .75);
+  color: #367b1c;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.accordion-body {
+  display: none;
+  padding: 12px;
+  border-top: 1px solid rgba(53, 99, 23, .15);
+  background: #fff;
+}
+
+.accordion.open .accordion-body {
+  display: block;
+}
+
+.check-list {
+  display: grid;
+  gap: 10px;
+}
+
+.check-list label {
+  min-height: 38px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface-2);
+  font-size: 13px;
+  font-weight: 650;
+}
+
+.notes {
+  width: 100%;
+  min-height: 110px;
+  resize: vertical;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px;
+  font: inherit;
+  outline: none;
+}
+
+@media (min-width: 720px) {
+  body {
+    padding: 24px;
+  }
+
+  .mobile-frame {
+    min-height: calc(100vh - 48px);
+    border-radius: 28px;
+    overflow: hidden;
+  }
+}
+
+</style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module">
+const STORAGE_KEY = "gefest-cl-checklist";
+
+const defaultChecklist = {
+  id: "54469-osk-shkola65cow",
+  status: "draft",
+  sendChannel: "email",
+  profile: {
+    brigadierFullName: "требует заполнения",
+    phone: "0509 366 666",
+    contractorCompany: "ОсОО Гефест Строй Монтаж",
+    position: "Бригадир",
+    region: "Ош",
+    customer: "ООО \"НУР Телеком\"",
+    warehouse: "Склад ОсОО Гефест Строй Монтаж",
+    contactChannel: "WhatsApp"
+  },
+  object: {
+    siteId: "54469",
+    siteName: "Osk-Shkola65COW",
+    workType: "Монтаж новой БС",
+    siteType: "Контейнер BTS",
+    acceptanceDate: "27.02.2026",
+    startTime: "10:00",
+    endTime: "15:37",
+    contractorCompany: "Гефест Строй Монтаж",
+    brigadierName: "требует проверки",
+    brigadierPhone: "0509 366 666",
+    bssEngineerName: "требует проверки",
+    bssEngineerPhone: "требует проверки",
+    address: "",
+    coordinates: "",
+    installationQuality: ""
+  },
+  documents: [
+    { id: "doc-tz", type: "ТЗ Word", fileName: "Osk-Shkola65COW.docx", status: "recognized", note: "азимуты, антенны, RRU" },
+    { id: "doc-mount", type: "Накладная монтаж", fileName: "Osk-Shkola65COW (54469) - монтаж БС.xlsx", status: "partial", note: "5 расхождений" },
+    { id: "doc-alt", type: "Накладная монтаж", fileName: "Osk-Shkola65COW (54469).xlsx", status: "partial", note: "альтернативная версия" },
+    { id: "doc-pdf", type: "Скан чек-листа", fileName: "2026-03-02-0001.pdf", status: "manual", note: "рукопись требует проверки" }
+  ],
+  fields: [
+    { key: "site", label: "Объект", value: "54469 · Osk-Shkola65COW", source: "ТЗ/PDF", status: "ok" },
+    { key: "work", label: "Тип работ", value: "Монтаж новой БС", source: "Накл.", status: "ok" },
+    { key: "siteType", label: "Тип объекта", value: "Контейнер BTS", source: "PDF", status: "ok" },
+    { key: "date", label: "Дата приемки", value: "27.02.2026", source: "PDF", status: "review" },
+    { key: "time", label: "Время", value: "10:00 - 15:37", source: "PDF", status: "ok" },
+    { key: "bts", label: "Тип БС", value: "ZTE 8900 / 8900A", source: "PDF", status: "ok" },
+    { key: "cabinets", label: "Шкафы", value: "BC8900A · PC8910A", source: "PDF", status: "ok" },
+    { key: "mast", label: "Высота мачты", value: "14 м", source: "PDF", status: "ok" },
+    { key: "power", label: "Питание", value: "B201 · 3 фазы · ZXD3000 x4", source: "PDF/Excel", status: "ok" },
+    { key: "battery", label: "АКБ", value: "Shoto · 2 группы · 270 А/ч", source: "PDF", status: "ok" }
+  ],
+  antennas: [
+    { sector: "1", azimuth: "80", band: "26/18/21", model: "MB4P-A2M", ret: "Y1750", tilt: "эл. 2" },
+    { sector: "2", azimuth: "150", band: "26/18/21", model: "MB4P-A2M", ret: "Y1855", tilt: "эл. 2" },
+    { sector: "3", azimuth: "290", band: "26/18/21", model: "MB4P-A2M", ret: "Y1037", tilt: "эл. 2" }
+  ],
+  rrus: [
+    { sector: "S1", s2600: "RRU8854E S2600", m1821: "RRU9224E M1821", diplex: "OA4" },
+    { sector: "S2", s2600: "RRU8854E S2600", m1821: "RRU9224E M1821", diplex: "OA4" },
+    { sector: "S3", s2600: "RRU8854E S2600", m1821: "RRU9224E M1821", diplex: "OA4" }
+  ],
+  materials: [
+    { no: "1", code: "204336", name: "Triplex double clamp (Fiber,Power)", qty: "16", unit: "шт.", status: "confirmed" },
+    { no: "2", code: "Z10749", name: "Battery 12V/135Ah", qty: "8", unit: "шт.", status: "confirmed" },
+    { no: "3", code: "207277 / 206003", name: "FS5A / FS3A", qty: "1", unit: "шт.", status: "mismatch" },
+    { no: "15", code: "209946", name: "DCPD10c", qty: "1", unit: "компл.", status: "confirmed" },
+    { no: "18", code: "205505", name: "Rectifier ZXD3000", qty: "4", unit: "шт.", status: "confirmed" },
+    { no: "21", code: "212315 / Z10799", name: "LPU2 / LPU", qty: "1", unit: "шт.", status: "mismatch" },
+    { no: "30", code: "211348", name: "Cold Shrink Sealing Sleeve", qty: "72", unit: "компл.", status: "review", note: "PDF визуально 73" },
+    { no: "41", code: "242919 / 160112", name: "VC9910A / BC8910A", qty: "1", unit: "шт.", status: "mismatch" },
+    { no: "44-46", code: "212528-212533", name: "R9224E M1821", qty: "3", unit: "шт.", status: "confirmed" },
+    { no: "47-49", code: "225842-225844", name: "RRU8854E S2600", qty: "3", unit: "шт.", status: "confirmed" }
+  ],
+  photos: [
+    { id: "general", category: "Общий вид объекта", required: true, attached: true, fileName: "общий_вид.jpg" },
+    { id: "antenna1", category: "Сектор 1 антенна", required: true, attached: true, fileName: "sector_1.jpg" },
+    { id: "antenna2", category: "Сектор 2 антенна", required: true, attached: false, fileName: "" },
+    { id: "antenna3", category: "Сектор 3 антенна", required: true, attached: false, fileName: "" },
+    { id: "rru", category: "RRU / передатчики", required: true, attached: false, fileName: "" },
+    { id: "bbu", category: "BBU / платы", required: true, attached: false, fileName: "" },
+    { id: "power", category: "Питание / АКБ", required: true, attached: false, fileName: "" },
+    { id: "grounding", category: "Заземление", required: true, attached: false, fileName: "" },
+    { id: "marking", category: "Маркировка кабелей", required: false, attached: false, fileName: "" },
+    { id: "defects", category: "Замечания / дефекты", required: false, attached: false, fileName: "" }
+  ],
+  mileage: {
+    departurePoint: "Ош",
+    objectDestination: "Osk-Shkola65COW",
+    returnDestination: "Ош",
+    kmToObject: "",
+    kmBack: "",
+    totalKm: "",
+    driver: "",
+    vehicle: "",
+    comment: ""
+  },
+  updatedAt: new Date().toISOString()
+};
+
+let state = {
+  screen: "create",
+  problemOnly: false,
+  openSections: new Set(["general"]),
+  checklist: loadChecklist()
+};
+
+function loadChecklist() {
+  if (typeof localStorage === "undefined") return structuredClone(defaultChecklist);
+  const raw = localStorage.getItem(STORAGE_KEY);
+  if (!raw) return structuredClone(defaultChecklist);
+  try {
+    return { ...structuredClone(defaultChecklist), ...JSON.parse(raw) };
+  } catch {
+    return structuredClone(defaultChecklist);
+  }
+}
+
+function saveChecklist() {
+  if (typeof localStorage === "undefined") return;
+  state.checklist.updatedAt = new Date().toISOString();
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.checklist));
+}
+
+function summary(checklist) {
+  const missingPhotos = checklist.photos.filter((photo) => photo.required && !photo.attached).length;
+  const mismatches = checklist.materials.filter((item) => item.status === "mismatch").length;
+  const reviews = checklist.fields.filter((field) => field.status === "review").length +
+    checklist.materials.filter((item) => item.status !== "confirmed").length;
+  const mileageMissing = !checklist.mileage.kmToObject || !checklist.mileage.kmBack || !checklist.mileage.totalKm;
+  const warnings = [
+    "В двух накладных разные позиции: FS5A/FS3A, LPU2/LPU, BS9900A/BS8900A, VC9910A/BC8910A.",
+    "Рукописные ФИО и часть телефонов в скане требуют ручной проверки.",
+    "Количество Cold Shrink: накладная 72, в скане визуально похоже на 73."
+  ];
+  if (mileageMissing) warnings.push("Пробег до объекта и обратно должен быть заполнен монтажником перед отправкой.");
+  if (missingPhotos) warnings.push(`Не хватает обязательных фото: ${missingPhotos}.`);
+  return {
+    autofillPercent: 78,
+    reviewFieldCount: reviews,
+    missingRequiredPhotos: missingPhotos,
+    materialMismatches: mismatches,
+    canSubmit: !missingPhotos && !mileageMissing,
+    warnings
+  };
+}
+
+function setScreen(screen) {
+  state.screen = screen;
+  render();
+}
+
+function badge(text, tone = "blue") {
+  return `<span class="badge badge-${tone}">${text}</span>`;
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+}
+
+function appHeader(title, subtitle = "Офлайн доступен") {
+  return `
+    <header class="app-header">
+      <div>
+        <div class="app-title">${title}</div>
+        <div class="app-subtitle">${subtitle}</div>
+      </div>
+      <button class="avatar" data-action="home" aria-label="На главную">A</button>
+    </header>
+  `;
+}
+
+function tabs() {
+  const items = [
+    ["create", "Создать"],
+    ["checklist", "Чек-лист"],
+    ["history", "История"]
+  ];
+  return `<nav class="tabs">${items.map(([key, label]) => `
+    <button class="tab ${state.screen === key ? "active" : ""}" data-screen="${key}">
+      <span></span>${label}
+    </button>`).join("")}</nav>`;
+}
+
+function renderCreate() {
+  const s = summary(state.checklist);
+  const profile = state.checklist.profile;
+  return `
+    ${appHeader("Создать", "Профиль, объект и загрузка файлов")}
+    <section class="screen-body">
+      <button class="primary wide" data-action="new-checklist">+ Создать чек-лист</button>
+
+      <h2>Аккаунт / Бригадир</h2>
+      <article class="profile-card">
+        <div class="site-mark">A</div>
+        <div>
+          <strong>${escapeHtml(profile.brigadierFullName)}</strong>
+          <p>${escapeHtml(profile.contractorCompany)} · ${escapeHtml(profile.phone)}</p>
+        </div>
+        ${badge(profile.brigadierFullName.includes("требует") ? "заполнить" : "готово", profile.brigadierFullName.includes("требует") ? "yellow" : "green")}
+      </article>
+
+      <div class="field-grid">
+        ${profileInput("ФИО бригадира", "brigadierFullName", profile.brigadierFullName)}
+        ${profileInput("Телефон", "phone", profile.phone)}
+        ${profileInput("ООО / подрядчик", "contractorCompany", profile.contractorCompany)}
+        ${profileInput("Заказчик", "customer", profile.customer)}
+        ${profileInput("Склад / через кого", "warehouse", profile.warehouse)}
+        ${profileInput("Регион", "region", profile.region)}
+      </div>
+
+      <h2>Новый чек-лист</h2>
+      <div class="field-grid">
+        ${objectInput("ID сайта", "siteId", state.checklist.object.siteId)}
+        ${objectInput("Название сайта", "siteName", state.checklist.object.siteName)}
+        ${objectInput("Тип работ", "workType", state.checklist.object.workType)}
+        ${objectInput("Тип объекта", "siteType", state.checklist.object.siteType)}
+      </div>
+
+      <h2>Загрузить файлы</h2>
+      ${documentsList()}
+      <div class="notice">После загрузки ТЗ и накладных данные автоматически попадут в раздел “Чек-лист”. Сейчас Excel-накладная уже читается автоматически.</div>
+      <button class="secondary wide" data-screen="checklist">Открыть созданный чек-лист · ${s.autofillPercent}%</button>
+    </section>
+    ${tabs()}
+  `;
+}
+
+function documentsList() {
+  return state.checklist.documents.map((doc) => `
+        <article class="upload-card">
+          <div class="file-icon">${doc.type[0]}</div>
+          <div>
+            <strong>${doc.type}</strong>
+            <p>${escapeHtml(doc.fileName)}</p>
+            <small>${doc.note}</small>
+          </div>
+          ${badge(doc.status === "recognized" ? "распознано" : doc.status === "partial" ? "частично" : "ручн.", doc.status === "recognized" ? "green" : "yellow")}
+          <label class="file-button">
+            заменить
+            <input type="file" data-doc="${doc.id}" />
+          </label>
+        </article>
+      `).join("");
+}
+
+function renderChecklist() {
+  const s = summary(state.checklist);
+  return `
+    ${appHeader("Чек-лист", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`)}
+    <section class="screen-body">
+      <div class="summary-grid compact">
+        <div><strong>${s.autofillPercent}%</strong><span>Заполнено</span></div>
+        <div><strong class="yellow">${s.reviewFieldCount}</strong><span>Проверить</span></div>
+        <div><strong class="red">${s.missingRequiredPhotos}</strong><span>Нет фото</span></div>
+      </div>
+      ${accordionSection("general", "Общие данные объекта", badge("ТЗ/PDF"), `
+        <div class="field-grid">${state.checklist.fields.slice(0, 8).map((field) => sourceField(field.label, field.value, field.source, field.status)).join("")}</div>
+      `)}
+      ${accordionSection("brigade", "Данные бригадира / организации", badge("профиль"), `
+        <div class="field-grid">
+          ${sourceField("ФИО бригадира", state.checklist.profile.brigadierFullName, "Профиль", "review")}
+          ${sourceField("Телефон", state.checklist.profile.phone, "Профиль")}
+          ${sourceField("Организация", state.checklist.profile.contractorCompany, "Профиль")}
+          ${sourceField("Заказчик", state.checklist.profile.customer, "Профиль")}
+        </div>
+      `)}
+      ${accordionSection("power", "Электропитание базовой станции", badge("PDF/Excel"), `
+        <div class="field-grid">${state.checklist.fields.slice(8).map((field) => sourceField(field.label, field.value, field.source, field.status)).join("")}</div>
+      `)}
+      ${accordionSection("bts", "Система питания BTS", badge("заполнено", "green"), `
+        <div class="field-grid">
+          ${sourceField("Система", "B201 · 3 фазы", "PDF")}
+          ${sourceField("Rectifier", "ZXD3000 · 4 шт.", "PDF/Excel")}
+          ${sourceField("DCPD", "DCPD10 · 2 шт.", "PDF")}
+          ${sourceField("LLVD / BLVD", "DCPD10 #2 / PM5 BBU", "PDF")}
+        </div>
+      `)}
+      ${accordionSection("rru", "Передатчики", badge("3 сектора"), `
+        ${table(["Сектор", "S2600", "M1821", "Diplex"], state.checklist.rrus.map((r) => [r.sector, r.s2600, r.m1821, r.diplex]))}
+      `)}
+      ${accordionSection("diplex", "Diplex / Triplex", badge("OA4"), `
+        ${table(["Сектор", "Тип слева", "Тип справа"], state.checklist.rrus.map((r) => [r.sector, r.diplex, r.diplex]))}
+      `)}
+      ${accordionSection("bbu8200", "Платы BBU 8200", badge("проверить", "yellow"), `
+        <div class="field-grid">
+          ${sourceField("CCFB", "1 шт.", "PDF")}
+          ${sourceField("FS5A / FS3A", "расхождение в накладных", "Excel", "review")}
+          ${sourceField("BPQ2", "2 шт.", "PDF")}
+          ${sourceField("PM5", "2 шт.", "Excel")}
+        </div>
+      `)}
+      ${accordionSection("bbu9200", "Платы BBU 9200", badge("частично", "yellow"), `
+        <div class="field-grid">
+          ${sourceField("VEMc1", "1 шт.", "PDF")}
+          ${sourceField("VPDc1", "1 шт.", "PDF")}
+          ${sourceField("VFC1", "1 шт.", "PDF")}
+        </div>
+      `)}
+      ${accordionSection("antennas", "Антенны и конфигурации", badge("ТЗ"), `
+        ${table(["Сектор", "Азимут", "Band", "Модель", "RET", "Угол"], state.checklist.antennas.map((a) => [a.sector, a.azimuth, a.band, a.model, a.ret, a.tilt]))}
+      `)}
+      ${accordionSection("feeder", "Фидерная трасса", badge("PDF"), `
+        <div class="notice">RF по секторам: 1/2 DC/opt · 1/2 DC/opt · 1/2 DC/opt. Коннекторы 4/3-10 сверху/снизу: 12 + 12. Длина GPS RF: 13 м. Клипсы 1/2: 30 шт., Opt: 6 шт., DC ground kit: 6 шт., GPS: 1 шт.</div>
+      `)}
+      ${accordionSection("mount", "Общий монтаж", badge("чек"), `
+        <div class="check-list">
+          ${["Кабеля AC/DC уложены и промаркированы", "Автоматы имеют правильную маркировку", "Заземление выполнено согласно ТТ", "Сайт чистый после монтажа"].map((item) => `<label><input type="checkbox" checked /> ${item}</label>`).join("")}
+        </div>
+      `)}
+      ${accordionSection("materials", "Дополнительно затраченные материалы", badge(`${state.checklist.materials.length} поз.`), materialsList())}
+      ${accordionSection("dismantled", "Демонтированное оборудование", badge("проверить", "yellow"), `
+        <div class="notice">Раздел будет заполняться из накладной на демонтаж или вручную.</div>
+      `)}
+      ${accordionSection("photos", "Фото", badge(`${state.checklist.photos.filter((p) => p.attached).length}/${state.checklist.photos.length}`), photosGrid())}
+      ${accordionSection("mileage", "Пробег", badge(state.checklist.mileage.totalKm ? `${state.checklist.mileage.totalKm} км` : "нет км", state.checklist.mileage.totalKm ? "green" : "red"), mileageForm())}
+      ${accordionSection("notes", "Лист замечаний", badge("пусто"), `<textarea class="notes" placeholder="Замечания по приемке"></textarea>`)}
+      ${accordionSection("send", "Отправка", badge("PDF + Excel"), sendPanel(s))}
+    </section>
+    ${tabs()}
+  `;
+}
+
+function renderHistory() {
+  const s = summary(state.checklist);
+  return `
+    ${appHeader("История", "Черновики, готовые и отправленные")}
+    <section class="screen-body">
+      <h2>Черновики</h2>
+      <article class="draft-card" data-screen="checklist">
+        <div class="site-mark">54</div>
+        <div>
+          <strong>${state.checklist.object.siteName}</strong>
+          <p>${state.checklist.object.siteType} · ${s.autofillPercent}% заполнено</p>
+          <div class="progress"><i style="width:${s.autofillPercent}%"></i></div>
+        </div>
+        ${badge(`${s.reviewFieldCount} проверить`, "yellow")}
+      </article>
+      <h2>Готовые / отправленные</h2>
+      <article class="draft-card muted-card">
+        <div class="site-mark small">↗</div>
+        <div>
+          <strong>Очередь отправки</strong>
+          <p>${state.checklist.status === "pending" ? "Ожидает интернет" : "Нет ожидающих отправок"}</p>
+        </div>
+        ${badge(state.checklist.status === "sent" ? "отправлено" : "локально", state.checklist.status === "sent" ? "green" : "blue")}
+      </article>
+    </section>
+    ${tabs()}
+  `;
+}
+
+function photosGrid() {
+  return `<div class="photo-grid">${state.checklist.photos.map((photo) => `
+        <article class="photo-card ${photo.attached ? "done" : ""}">
+          <div>
+            <strong>${photo.category}</strong>
+            <p>${photo.required ? "обязательно" : "дополнительно"}</p>
+            ${photo.fileName ? `<small>${escapeHtml(photo.fileName)}</small>` : ""}
+          </div>
+          <label class="photo-action">
+            ${photo.attached ? "✓" : "+"}
+            <input type="file" accept="image/*" data-photo="${photo.id}" />
+          </label>
+        </article>
+      `).join("")}</div>`;
+}
+
+function sendPanel(s) {
+  return `
+      <h2>Предупреждения</h2>
+      ${s.warnings.map((warning) => `<div class="warning">! <span>${warning}</span></div>`).join("")}
+      <h2>Канал отправки</h2>
+      <div class="channel-row">
+        ${["email", "whatsapp", "telegram"].map((channel) => `<button class="${state.checklist.sendChannel === channel ? "active" : ""}" data-channel="${channel}">${channelLabel(channel)}</button>`).join("")}
+      </div>
+      ${reportPreview(s)}
+      <button class="primary wide" data-action="submit">${s.canSubmit ? "Отправить" : "Заполнить обязательные поля"}</button>
+  `;
+}
+
+function sourceField(label, value, source, status = "ok") {
+  return `<article class="source-field ${status}">
+    <div><span>${label}</span>${badge(source, status === "review" ? "yellow" : "blue")}</div>
+    <strong>${escapeHtml(value)}</strong>
+  </article>`;
+}
+
+function profileInput(label, key, value) {
+  return `<label class="input-field">
+    <span>${label}</span>
+    <input type="text" value="${escapeHtml(value)}" data-profile="${key}" />
+  </label>`;
+}
+
+function objectInput(label, key, value) {
+  return `<label class="input-field">
+    <span>${label}</span>
+    <input type="text" value="${escapeHtml(value)}" data-object="${key}" />
+  </label>`;
+}
+
+function inputField(label, key, value, type = "text") {
+  return `<label class="input-field">
+    <span>${label}</span>
+    <input type="${type}" value="${escapeHtml(value)}" data-mileage="${key}" />
+  </label>`;
+}
+
+function mileageForm() {
+  const mileage = state.checklist.mileage;
+  return `
+    ${inputField("Откуда выехал", "departurePoint", mileage.departurePoint)}
+    ${inputField("Объект", "objectDestination", mileage.objectDestination)}
+    ${inputField("Куда вернулся", "returnDestination", mileage.returnDestination)}
+    <div class="triple">
+      ${inputField("Км туда", "kmToObject", mileage.kmToObject, "number")}
+      ${inputField("Км обратно", "kmBack", mileage.kmBack, "number")}
+      ${inputField("Всего км", "totalKm", mileage.totalKm, "number")}
+    </div>
+    ${inputField("Водитель", "driver", mileage.driver)}
+    ${inputField("Авто", "vehicle", mileage.vehicle)}
+  `;
+}
+
+function materialsList() {
+  return `<div class="materials">${state.checklist.materials.map((m) => `
+    <article class="material ${m.status}">
+      <span>${m.no}</span>
+      <div><strong>${m.name}</strong><p>${m.code} · ${m.qty} ${m.unit}${m.note ? ` · ${m.note}` : ""}</p></div>
+      ${badge(m.status === "confirmed" ? "OK" : m.status === "mismatch" ? "различие" : "проверить", m.status === "confirmed" ? "green" : "yellow")}
+    </article>
+  `).join("")}</div>`;
+}
+
+function accordionSection(id, title, meta, body) {
+  const open = state.openSections.has(id);
+  return `<article class="accordion ${open ? "open" : ""}">
+    <button class="accordion-head" data-section="${id}">
+      <span class="plus">${open ? "−" : "+"}</span>
+      <strong>${title}</strong>
+      ${meta}
+    </button>
+    <div class="accordion-body">${body}</div>
+  </article>`;
+}
+
+function table(headers, rows) {
+  return `<div class="table" style="--cols:${headers.length}">
+    <div class="table-row head">${headers.map((h) => `<span>${h}</span>`).join("")}</div>
+    ${rows.map((row) => `<div class="table-row">${row.map((cell) => `<span>${escapeHtml(cell)}</span>`).join("")}</div>`).join("")}
+  </div>`;
+}
+
+function channelLabel(channel) {
+  return { email: "Email", whatsapp: "WhatsApp", telegram: "Telegram" }[channel];
+}
+
+function reportPreview(s) {
+  return `<article class="report-preview">
+    <h2>Предпросмотр отчета</h2>
+    <div class="report-head"><strong>Gefest Cl</strong><span>PDF + Excel</span></div>
+    <div class="report-row"><span>Сайт</span><b>${state.checklist.object.siteId} · ${state.checklist.object.siteName}</b></div>
+    <div class="report-row"><span>БС</span><b>ZTE 8900 / 8900A · BC8900A · PC8910A</b></div>
+    <div class="report-row"><span>Готовность</span><b>${s.autofillPercent}% · ${s.reviewFieldCount} проверить · ${s.missingRequiredPhotos} фото</b></div>
+    <div class="report-actions"><button disabled>Сформировать PDF</button><button disabled>Сформировать Excel</button></div>
+  </article>`;
+}
+
+function render() {
+  if (typeof document === "undefined") return;
+  const app = document.querySelector("#app");
+  const screens = {
+    create: renderCreate,
+    checklist: renderChecklist,
+    history: renderHistory
+  };
+  app.innerHTML = `<main class="mobile-frame">${screens[state.screen]()}</main>`;
+}
+
+if (typeof document !== "undefined") document.addEventListener("click", (event) => {
+  const target = event.target.closest("[data-screen], [data-action], [data-channel], [data-section]");
+  if (!target) return;
+  if (target.dataset.screen) setScreen(target.dataset.screen);
+  if (target.dataset.action === "home") setScreen("create");
+  if (target.dataset.section) {
+    if (state.openSections.has(target.dataset.section)) state.openSections.delete(target.dataset.section);
+    else state.openSections.add(target.dataset.section);
+    render();
+  }
+  if (target.dataset.action === "new-checklist") setScreen("checklist");
+  if (target.dataset.channel) {
+    state.checklist.sendChannel = target.dataset.channel;
+    saveChecklist();
+    render();
+  }
+  if (target.dataset.action === "submit") {
+    const s = summary(state.checklist);
+    state.checklist.status = s.canSubmit ? "pending" : "draft";
+    saveChecklist();
+    render();
+  }
+});
+
+if (typeof document !== "undefined") document.addEventListener("input", (event) => {
+  const input = event.target;
+  if (input.dataset?.profile) {
+    state.checklist.profile[input.dataset.profile] = input.value;
+    if (input.dataset.profile === "brigadierFullName") state.checklist.object.brigadierName = input.value;
+    if (input.dataset.profile === "phone") state.checklist.object.brigadierPhone = input.value;
+    if (input.dataset.profile === "contractorCompany") state.checklist.object.contractorCompany = input.value;
+    saveChecklist();
+  }
+  if (input.dataset?.object) {
+    state.checklist.object[input.dataset.object] = input.value;
+    if (input.dataset.object === "siteId" || input.dataset.object === "siteName") {
+      state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`;
+    }
+    saveChecklist();
+  }
+  if (input.dataset?.mileage) {
+    state.checklist.mileage[input.dataset.mileage] = input.value;
+    if (input.dataset.mileage === "kmToObject" || input.dataset.mileage === "kmBack") {
+      const to = Number(state.checklist.mileage.kmToObject || 0);
+      const back = Number(state.checklist.mileage.kmBack || 0);
+      state.checklist.mileage.totalKm = to || back ? String(to + back) : "";
+    }
+    saveChecklist();
+  }
+});
+
+if (typeof document !== "undefined") document.addEventListener("change", (event) => {
+  const input = event.target;
+  const fileName = input.files?.[0]?.name;
+  if (!fileName) return;
+  if (input.dataset.doc) {
+    const doc = state.checklist.documents.find((item) => item.id === input.dataset.doc);
+    if (doc) {
+      doc.fileName = fileName;
+      doc.status = "manual";
+      if (fileName.toLowerCase().endsWith(".xlsx")) {
+        parseXlsxDeliveryNote(input.files[0])
+          .then((result) => {
+            doc.status = "recognized";
+            doc.note = `${result.materials.length} позиций распознано`;
+            if (result.siteName) {
+              state.checklist.object.siteName = result.siteName;
+              state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
+            }
+            state.checklist.materials = mergeParsedMaterials(result.materials, state.checklist.materials);
+            saveChecklist();
+            render();
+          })
+          .catch((error) => {
+            doc.status = "error";
+            doc.note = `ошибка чтения: ${error.message}`;
+            saveChecklist();
+            render();
+          });
+      } else {
+        saveChecklist();
+        render();
+      }
+    }
+  }
+  if (input.dataset.photo) {
+    const photo = state.checklist.photos.find((item) => item.id === input.dataset.photo);
+    if (photo) {
+      photo.fileName = fileName;
+      photo.attached = true;
+      saveChecklist();
+      render();
+    }
+  }
+});
+
+render();
+
+export const __gefestTestApi = {
+  defaultChecklist,
+  summary,
+  mergeParsedMaterials
+};
+
+function mergeParsedMaterials(parsed, previous) {
+  const previousByKey = new Map(previous.map((item) => [`${item.code}|${item.name}`, item]));
+  return parsed.map((item) => {
+    const prior = previousByKey.get(`${item.code}|${item.name}`);
+    return {
+      no: item.no,
+      code: item.code,
+      name: item.name,
+      qty: item.qty,
+      unit: item.unit,
+      inventoryNumber: item.inventoryNumber,
+      status: prior?.status === "mismatch" ? "mismatch" : "confirmed",
+      note: prior?.note || ""
+    };
+  });
+}
+
+async function parseXlsxDeliveryNote(file) {
+  const buffer = await file.arrayBuffer();
+  const zip = readZipDirectory(buffer);
+  const sharedStrings = await readSharedStrings(zip);
+  const sheetXml = await readZipText(zip, "xl/worksheets/sheet1.xml");
+  const rows = parseWorksheet(sheetXml, sharedStrings);
+  const materials = [];
+  let siteName = "";
+
+  for (const row of rows) {
+    if (!siteName && row.B && String(row.B).includes("(")) siteName = String(row.B).trim();
+    const rowNumber = Number(row.A);
+    if (!Number.isFinite(rowNumber)) continue;
+    if (rowNumber < 1 || rowNumber > 200) continue;
+    if (!row.C && !row.E) continue;
+    materials.push({
+      no: String(row.A || ""),
+      code: String(row.C || "").trim(),
+      inventoryNumber: String(row.D || "").trim(),
+      name: String(row.E || "").trim(),
+      qty: String(row.G || row.H || "").trim(),
+      unit: String(row.I || "").trim()
+    });
+  }
+
+  return { siteName, materials };
+}
+
+function readZipDirectory(buffer) {
+  const bytes = new Uint8Array(buffer);
+  const view = new DataView(buffer);
+  let eocd = -1;
+  for (let i = bytes.length - 22; i >= Math.max(0, bytes.length - 66000); i -= 1) {
+    if (view.getUint32(i, true) === 0x06054b50) {
+      eocd = i;
+      break;
+    }
+  }
+  if (eocd < 0) throw new Error("ZIP каталог не найден");
+
+  const entryCount = view.getUint16(eocd + 10, true);
+  const centralOffset = view.getUint32(eocd + 16, true);
+  const entries = new Map();
+  let offset = centralOffset;
+
+  for (let i = 0; i < entryCount; i += 1) {
+    if (view.getUint32(offset, true) !== 0x02014b50) throw new Error("ZIP запись повреждена");
+    const method = view.getUint16(offset + 10, true);
+    const compressedSize = view.getUint32(offset + 20, true);
+    const fileNameLength = view.getUint16(offset + 28, true);
+    const extraLength = view.getUint16(offset + 30, true);
+    const commentLength = view.getUint16(offset + 32, true);
+    const localOffset = view.getUint32(offset + 42, true);
+    const name = new TextDecoder().decode(bytes.slice(offset + 46, offset + 46 + fileNameLength));
+
+    const localNameLength = view.getUint16(localOffset + 26, true);
+    const localExtraLength = view.getUint16(localOffset + 28, true);
+    const dataOffset = localOffset + 30 + localNameLength + localExtraLength;
+    entries.set(name, {
+      method,
+      data: bytes.slice(dataOffset, dataOffset + compressedSize)
+    });
+
+    offset += 46 + fileNameLength + extraLength + commentLength;
+  }
+
+  return entries;
+}
+
+async function readZipText(zip, path) {
+  const entry = zip.get(path);
+  if (!entry) throw new Error(`${path} не найден`);
+  let data;
+  if (entry.method === 0) {
+    data = entry.data;
+  } else if (entry.method === 8) {
+    data = await inflateRaw(entry.data);
+  } else {
+    throw new Error(`ZIP метод ${entry.method} не поддержан`);
+  }
+  return new TextDecoder("utf-8").decode(data);
+}
+
+async function inflateRaw(data) {
+  if (typeof DecompressionStream !== "undefined") {
+    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+    return new Uint8Array(await new Response(stream).arrayBuffer());
+  }
+  throw new Error("браузер не поддерживает deflate-raw");
+}
+
+async function readSharedStrings(zip) {
+  if (!zip.has("xl/sharedStrings.xml")) return [];
+  const xml = await readZipText(zip, "xl/sharedStrings.xml");
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  return [...doc.getElementsByTagName("si")].map((si) =>
+    [...si.getElementsByTagName("t")].map((t) => t.textContent || "").join("")
+  );
+}
+
+function parseWorksheet(xml, sharedStrings) {
+  const doc = new DOMParser().parseFromString(xml, "application/xml");
+  const rowsByNumber = new Map();
+  for (const cell of doc.getElementsByTagName("c")) {
+    const ref = cell.getAttribute("r") || "";
+    const match = ref.match(/^([A-Z]+)(\d+)$/);
+    if (!match) continue;
+    const [, col, rowText] = match;
+    const rowNumber = Number(rowText);
+    const type = cell.getAttribute("t");
+    const raw = cell.getElementsByTagName("v")[0]?.textContent || "";
+    const inline = cell.getElementsByTagName("t")[0]?.textContent || "";
+    let value = raw;
+    if (type === "s") value = sharedStrings[Number(raw)] || "";
+    if (type === "inlineStr") value = inline;
+    if (!rowsByNumber.has(rowNumber)) rowsByNumber.set(rowNumber, {});
+    rowsByNumber.get(rowNumber)[col] = value;
+  }
+  return [...rowsByNumber.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([, row]) => row);
+}
+
+</script>
+  </body>
+</html>
