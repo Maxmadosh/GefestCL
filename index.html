@@ -764,7 +764,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.6-github-sync";
+const APP_VERSION = "v0.7-delivery-compare";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -837,6 +837,8 @@ const defaultChecklist = {
     { no: "44-46", code: "212528-212533", name: "R9224E M1821", qty: "3", unit: "шт.", status: "confirmed", category: "rru" },
     { no: "47-49", code: "225842-225844", name: "RRU8854E S2600", qty: "3", unit: "шт.", status: "confirmed", category: "rru" }
   ],
+  deliveryNotes: {},
+  deliveryMismatches: [],
   photos: [
     { id: "general", category: "Общий вид объекта", required: true, attached: true, fileName: "общий_вид.jpg" },
     { id: "antenna1", category: "Сектор 1 антенна", required: true, attached: true, fileName: "sector_1.jpg" },
@@ -888,6 +890,8 @@ function normalizeChecklist(checklist) {
   checklist.object = { ...defaultChecklist.object, ...(checklist.object || {}) };
   checklist.mileage = { ...defaultChecklist.mileage, ...(checklist.mileage || {}) };
   checklist.manualFields = { ...(checklist.manualFields || {}) };
+  checklist.deliveryNotes = { ...(checklist.deliveryNotes || {}) };
+  checklist.deliveryMismatches = Array.isArray(checklist.deliveryMismatches) ? checklist.deliveryMismatches : [];
   checklist.notes = checklist.notes || "";
   checklist.materials = (checklist.materials || []).map((item) => ({
     ...item,
@@ -905,21 +909,23 @@ function saveChecklist() {
 function summary(checklist) {
   const missingPhotos = checklist.photos.filter((photo) => photo.required && !photo.attached).length;
   const mismatches = checklist.materials.filter((item) => item.status === "mismatch").length;
+  const deliveryMismatchCount = checklist.deliveryMismatches?.length || 0;
   const reviews = checklist.fields.filter((field) => field.status === "review").length +
-    checklist.materials.filter((item) => item.status !== "confirmed").length;
+    checklist.materials.filter((item) => item.status !== "confirmed").length +
+    deliveryMismatchCount;
   const mileageMissing = !checklist.mileage.kmToObject || !checklist.mileage.kmBack || !checklist.mileage.totalKm;
   const warnings = [
-    "В двух накладных разные позиции: FS5A/FS3A, LPU2/LPU, BS9900A/BS8900A, VC9910A/BC8910A.",
     "Рукописные ФИО и часть телефонов в скане требуют ручной проверки.",
     "Количество Cold Shrink: накладная 72, в скане визуально похоже на 73."
   ];
+  if (deliveryMismatchCount) warnings.unshift(`В накладных найдено расхождений: ${deliveryMismatchCount}. Проверь раздел “Расхождения накладных”.`);
   if (mileageMissing) warnings.push("Пробег до объекта и обратно должен быть заполнен монтажником перед отправкой.");
   if (missingPhotos) warnings.push(`Не хватает обязательных фото: ${missingPhotos}.`);
   return {
     autofillPercent: 78,
     reviewFieldCount: reviews,
     missingRequiredPhotos: missingPhotos,
-    materialMismatches: mismatches,
+    materialMismatches: mismatches + deliveryMismatchCount,
     canSubmit: !missingPhotos && !mileageMissing,
     warnings
   };
@@ -1012,6 +1018,7 @@ function renderCreate() {
 }
 
 function documentsList() {
+  const uploadedNoteCount = Object.keys(state.checklist.deliveryNotes || {}).length;
   return state.checklist.documents.map((doc) => `
         <article class="upload-card">
           <div class="file-icon">${doc.type[0]}</div>
@@ -1026,7 +1033,7 @@ function documentsList() {
             <input type="file" data-doc="${doc.id}" />
           </label>
         </article>
-      `).join("");
+      `).join("") + (uploadedNoteCount ? `<div class="notice compact-note">Загружено накладных для сравнения: ${uploadedNoteCount}. Расхождений: ${state.checklist.deliveryMismatches.length}.</div>` : "");
 }
 
 function uploadResultNotice() {
@@ -1161,6 +1168,13 @@ function getChecklistSections(s) {
       required: true,
       meta: sectionMeta(`${state.checklist.materials.length} поз.`, "blue", true),
       body: materialsList()
+    },
+    {
+      id: "delivery-diff",
+      title: "Расхождения накладных",
+      required: true,
+      meta: sectionMeta(state.checklist.deliveryMismatches.length ? `${state.checklist.deliveryMismatches.length} проверить` : "нет", state.checklist.deliveryMismatches.length ? "yellow" : "green", true),
+      body: deliveryMismatchList()
     },
     {
       id: "dismantled",
@@ -1331,6 +1345,23 @@ function materialsList() {
         <input class="material-note" type="text" value="${escapeHtml(m.note || "")}" data-material="${m.no}" data-material-key="note" placeholder="Комментарий" />
       </div>
       ${badge(categoryLabel(materialCategory(m)), m.status === "confirmed" ? "green" : "yellow")}
+    </article>
+  `).join("")}</div>`;
+}
+
+function deliveryMismatchList() {
+  const notes = Object.values(state.checklist.deliveryNotes || {});
+  if (notes.length < 2) return `<div class="notice">Для сравнения нужно загрузить минимум две Excel-накладные: основную монтажную и альтернативную/повторную.</div>`;
+  if (!state.checklist.deliveryMismatches.length) return `<div class="notice">Две накладные загружены. Расхождений по позициям, кодам, названиям и количеству не найдено.</div>`;
+  return `<div class="materials">${state.checklist.deliveryMismatches.map((mismatch) => `
+    <article class="material mismatch">
+      <span>${escapeHtml(mismatch.no)}</span>
+      <div>
+        <strong>${escapeHtml(mismatch.title)}</strong>
+        <p>${escapeHtml(mismatch.details)}</p>
+        <small>${escapeHtml(mismatch.files.join(" / "))}</small>
+      </div>
+      ${badge("проверить", "yellow")}
     </article>
   `).join("")}</div>`;
 }
@@ -1572,7 +1603,16 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
               state.checklist.object.siteName = result.siteName;
               state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
             }
-            state.checklist.materials = mergeParsedMaterials(result.materials, state.checklist.materials);
+            state.checklist.deliveryNotes[doc.id] = {
+              id: doc.id,
+              type: doc.type,
+              fileName,
+              materials: result.materials,
+              parsedAt: new Date().toISOString()
+            };
+            state.checklist.materials = mergeDeliveryMaterials(state.checklist.deliveryNotes, state.checklist.materials);
+            state.checklist.deliveryMismatches = compareDeliveryNotes(state.checklist.deliveryNotes);
+            doc.note = `${result.materials.length} позиций распознано · расхождений ${state.checklist.deliveryMismatches.length}`;
             applyMaterialHintsToChecklist();
             saveChecklist();
             render();
@@ -1639,13 +1679,106 @@ function updateField(key, value, source = "Excel") {
   field.status = "ok";
 }
 
+function mergeDeliveryMaterials(deliveryNotes, previous) {
+  const notes = Object.values(deliveryNotes || {});
+  if (!notes.length) return previous;
+  if (notes.length === 1) return mergeParsedMaterials(notes[0].materials, previous);
+
+  const previousByNo = new Map(previous.map((item) => [normalizeNo(item.no), item]));
+  const rowsByNo = new Map();
+  for (const note of notes) {
+    for (const item of note.materials || []) {
+      const no = normalizeNo(item.no);
+      if (!no) continue;
+      if (!rowsByNo.has(no)) rowsByNo.set(no, []);
+      rowsByNo.get(no).push({ ...item, fileName: note.fileName });
+    }
+  }
+
+  const mismatchedNos = new Set(compareDeliveryNotes(deliveryNotes).map((item) => normalizeNo(item.no)));
+  return [...rowsByNo.entries()]
+    .sort(([a], [b]) => Number(a) - Number(b))
+    .map(([no, rows]) => {
+      const prior = previousByNo.get(no);
+      const selected = rows[0];
+      const mismatch = mismatchedNos.has(no);
+      return {
+        no: selected.no,
+        code: selected.code,
+        name: selected.name,
+        qty: selected.qty,
+        unit: selected.unit,
+        inventoryNumber: selected.inventoryNumber,
+        category: prior?.category || classifyMaterial(selected),
+        status: mismatch ? "mismatch" : prior?.status || "confirmed",
+        note: mismatch ? "есть расхождение между накладными" : prior?.note || ""
+      };
+    });
+}
+
+function compareDeliveryNotes(deliveryNotes) {
+  const notes = Object.values(deliveryNotes || {}).filter((note) => note.materials?.length);
+  if (notes.length < 2) return [];
+  const rowsByNo = new Map();
+  for (const note of notes) {
+    for (const item of note.materials) {
+      const no = normalizeNo(item.no);
+      if (!no) continue;
+      if (!rowsByNo.has(no)) rowsByNo.set(no, []);
+      rowsByNo.get(no).push({ ...item, fileName: note.fileName });
+    }
+  }
+
+  const mismatches = [];
+  for (const [no, rows] of rowsByNo.entries()) {
+    const signatures = new Set(rows.map(materialSignature));
+    if (rows.length !== notes.length || signatures.size > 1) {
+      const title = rows.map((row) => row.name || row.code || "без названия").join(" / ");
+      const details = rows.map((row) =>
+        `${row.fileName}: ${row.code || "-"} · ${row.name || "-"} · ${row.qty || "-"} ${row.unit || ""}`.trim()
+      ).join(" | ");
+      mismatches.push({
+        no,
+        title,
+        details,
+        files: rows.map((row) => row.fileName)
+      });
+    }
+  }
+  return mismatches.sort((a, b) => Number(a.no) - Number(b.no));
+}
+
+function materialSignature(item) {
+  return [
+    normalizeText(item.code),
+    normalizeText(item.name),
+    normalizeNumber(item.qty),
+    normalizeText(item.unit)
+  ].join("|");
+}
+
+function normalizeNo(value) {
+  return String(value || "").trim();
+}
+
+function normalizeText(value) {
+  return String(value || "").trim().toLowerCase().replace(/\s+/g, " ");
+}
+
+function normalizeNumber(value) {
+  const number = Number(String(value || "").replace(",", "."));
+  return Number.isFinite(number) ? String(number) : normalizeText(value);
+}
+
 render();
 
 export const __gefestTestApi = {
   defaultChecklist,
   summary,
   mergeParsedMaterials,
-  classifyMaterial
+  classifyMaterial,
+  compareDeliveryNotes,
+  mergeDeliveryMaterials
 };
 
 function mergeParsedMaterials(parsed, previous) {
