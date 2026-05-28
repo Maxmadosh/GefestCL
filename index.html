@@ -474,8 +474,31 @@ small {
 
 .material-edit-row {
   display: grid;
-  grid-template-columns: 1fr 58px 54px;
-  gap: 6px;
+  grid-template-columns: 1fr;
+  gap: 8px;
+}
+
+.material-edit-row label span,
+.unit-lock span {
+  display: block;
+  margin: 0 0 4px 2px;
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.unit-lock strong {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  padding: 7px 8px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #edf3f7;
+  color: var(--muted);
+  font-size: 13px;
 }
 
 .material-note {
@@ -645,11 +668,21 @@ small {
 
 .report-actions button {
   min-height: 38px;
-  border: 0;
+  border: 1px solid transparent;
   border-radius: 12px;
   background: #edf3f7;
   color: var(--muted);
   font-weight: 720;
+}
+
+.report-actions button.active {
+  border-color: var(--blue);
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+}
+
+.report-table {
+  margin-top: 12px;
 }
 
 .tabs {
@@ -802,7 +835,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.9-start-flow";
+const APP_VERSION = "v0.10-report-mileage";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -894,12 +927,7 @@ const defaultChecklist = {
     departurePoint: "Ош",
     objectDestination: "Osk-Shkola65COW",
     returnDestination: "Ош",
-    kmToObject: "",
-    kmBack: "",
-    totalKm: "",
-    driver: "",
-    vehicle: "",
-    comment: ""
+    totalKm: ""
   },
   manualFields: {},
   notes: "",
@@ -909,6 +937,7 @@ const defaultChecklist = {
 let state = {
   screen: "create",
   problemOnly: false,
+  reportFormat: "pdf",
   openSections: new Set(["general"]),
   checklist: loadChecklist()
 };
@@ -960,13 +989,13 @@ function summary(checklist) {
   const reviews = checklist.fields.filter((field) => field.status === "review").length +
     checklist.materials.filter((item) => item.status !== "confirmed").length +
     deliveryMismatchCount;
-  const mileageMissing = !checklist.mileage.kmToObject || !checklist.mileage.kmBack || !checklist.mileage.totalKm;
+  const mileageMissing = !checklist.mileage.totalKm || !checklist.mileage.departurePoint || !checklist.mileage.objectDestination || !checklist.mileage.returnDestination;
   const warnings = [
     "Рукописные ФИО и часть телефонов в скане требуют ручной проверки.",
     "Количество Cold Shrink: накладная 72, в скане визуально похоже на 73."
   ];
   if (deliveryMismatchCount) warnings.unshift(`В накладных найдено расхождений: ${deliveryMismatchCount}. Проверь раздел “Расхождения накладных”.`);
-  if (mileageMissing) warnings.push("Пробег до объекта и обратно должен быть заполнен монтажником перед отправкой.");
+  if (mileageMissing) warnings.push("Пробег, точка выезда, объект и точка возврата должны быть заполнены монтажником перед отправкой.");
   if (missingPhotos) warnings.push(`Не хватает обязательных фото: ${missingPhotos}.`);
   return {
     autofillPercent: 78,
@@ -1052,7 +1081,6 @@ function renderRegistration() {
         ${profileInput("Телефон", "phone", profile.phone)}
         ${profileInput("ООО / подрядчик", "contractorCompany", profile.contractorCompany)}
         ${profileInput("Заказчик", "customer", profile.customer)}
-        ${profileInput("Регион", "region", profile.region)}
       </div>
       <button class="primary wide" data-action="save-registration">Сохранить профиль</button>
     </section>
@@ -1123,7 +1151,6 @@ function getChecklistSections(s) {
         ${sourceField("Организация", state.checklist.profile.contractorCompany, "Профиль", "ok", true, `data-profile="contractorCompany"`)}
         ${sourceField("Заказчик", state.checklist.profile.customer, "Профиль", "ok", true, `data-profile="customer"`)}
         ${sourceField("Склад / через кого", state.checklist.profile.warehouse, "Профиль", "ok", false, `data-profile="warehouse"`)}
-        ${sourceField("Регион", state.checklist.profile.region, "Профиль", "ok", false, `data-profile="region"`)}
       </div>`
     },
     {
@@ -1363,13 +1390,7 @@ function mileageForm() {
     ${inputField("Откуда выехал", "departurePoint", mileage.departurePoint)}
     ${inputField("Объект", "objectDestination", mileage.objectDestination)}
     ${inputField("Куда вернулся", "returnDestination", mileage.returnDestination)}
-    <div class="triple">
-      ${inputField("Км туда", "kmToObject", mileage.kmToObject, "number")}
-      ${inputField("Км обратно", "kmBack", mileage.kmBack, "number")}
-      ${inputField("Всего км", "totalKm", mileage.totalKm, "number")}
-    </div>
-    ${inputField("Водитель", "driver", mileage.driver)}
-    ${inputField("Авто", "vehicle", mileage.vehicle)}
+    ${inputField("Всего км", "totalKm", mileage.totalKm, "number")}
   `;
 }
 
@@ -1380,9 +1401,9 @@ function materialsList() {
       <div>
         <input class="material-name" type="text" value="${escapeHtml(m.name)}" data-material="${m.no}" data-material-key="name" />
         <div class="material-edit-row">
-          <input type="text" value="${escapeHtml(m.code)}" data-material="${m.no}" data-material-key="code" aria-label="Код" />
-          <input type="text" value="${escapeHtml(m.qty)}" data-material="${m.no}" data-material-key="qty" aria-label="Количество" />
-          <input type="text" value="${escapeHtml(m.unit)}" data-material="${m.no}" data-material-key="unit" aria-label="Ед." />
+          <label><span>Код</span><input type="text" value="${escapeHtml(m.code)}" data-material="${m.no}" data-material-key="code" aria-label="Код" /></label>
+          <label><span>Количество</span><input type="text" value="${escapeHtml(m.qty)}" data-material="${m.no}" data-material-key="qty" aria-label="Количество" /></label>
+          <div class="unit-lock"><span>Ед. изм.</span><strong>${escapeHtml(m.unit || "шт.")}</strong></div>
         </div>
         <input class="material-note" type="text" value="${escapeHtml(m.note || "")}" data-material="${m.no}" data-material-key="note" placeholder="Комментарий" />
       </div>
@@ -1501,14 +1522,45 @@ function channelLabel(channel) {
 }
 
 function reportPreview(s) {
+  const format = state.reportFormat || "pdf";
+  const rows = [
+    ["Сайт", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`],
+    ["Бригадир", `${state.checklist.profile.brigadierFullName} · ${state.checklist.profile.phone}`],
+    ["Тип работ", state.checklist.object.workType],
+    ["Пробег", `${state.checklist.mileage.totalKm || "-"} км · ${state.checklist.mileage.departurePoint} → ${state.checklist.mileage.objectDestination} → ${state.checklist.mileage.returnDestination}`],
+    ["Готовность", `${s.autofillPercent}% · ${s.reviewFieldCount} проверить · ${s.missingRequiredPhotos} фото`]
+  ];
   return `<article class="report-preview">
     <h2>Предпросмотр отчета</h2>
-    <div class="report-head"><strong>Gefest Cl</strong><span>PDF + Excel</span></div>
-    <div class="report-row"><span>Сайт</span><b>${state.checklist.object.siteId} · ${state.checklist.object.siteName}</b></div>
-    <div class="report-row"><span>БС</span><b>ZTE 8900 / 8900A · BC8900A · PC8910A</b></div>
-    <div class="report-row"><span>Готовность</span><b>${s.autofillPercent}% · ${s.reviewFieldCount} проверить · ${s.missingRequiredPhotos} фото</b></div>
-    <div class="report-actions"><button disabled>Сформировать PDF</button><button disabled>Сформировать Excel</button></div>
+    <div class="report-actions">
+      <button class="${format === "pdf" ? "active" : ""}" data-report-format="pdf">PDF</button>
+      <button class="${format === "excel" ? "active" : ""}" data-report-format="excel">Excel</button>
+    </div>
+    ${format === "excel" ? excelPreview(rows) : pdfPreview(rows)}
   </article>`;
+}
+
+function pdfPreview(rows) {
+  return `
+    <div class="report-head"><strong>Gefest Cl</strong><span>PDF</span></div>
+    ${rows.map(([label, value]) => `<div class="report-row"><span>${escapeHtml(label)}</span><b>${escapeHtml(value)}</b></div>`).join("")}
+    <div class="report-row"><span>Материалы</span><b>${state.checklist.materials.length} позиций · расхождений ${state.checklist.deliveryMismatches.length}</b></div>
+  `;
+}
+
+function excelPreview(rows) {
+  const materialRows = state.checklist.materials.slice(0, 8).map((item) => [item.no, item.code, item.name, item.qty, item.unit]);
+  return `
+    <div class="table report-table" style="--cols:2">
+      <div class="table-row head"><span>Поле</span><span>Значение</span></div>
+      ${rows.map((row) => `<div class="table-row"><span>${escapeHtml(row[0])}</span><span>${escapeHtml(row[1])}</span></div>`).join("")}
+    </div>
+    <h2>Материалы</h2>
+    <div class="table report-table" style="--cols:5">
+      <div class="table-row head"><span>№</span><span>Код</span><span>Наименование</span><span>Кол-во</span><span>Ед.</span></div>
+      ${materialRows.map((row) => `<div class="table-row">${row.map((cell) => `<span>${escapeHtml(cell)}</span>`).join("")}</div>`).join("")}
+    </div>
+  `;
 }
 
 function render() {
@@ -1552,6 +1604,10 @@ if (typeof document !== "undefined") document.addEventListener("click", (event) 
     saveChecklist();
     render();
   }
+  if (target.dataset.reportFormat) {
+    state.reportFormat = target.dataset.reportFormat;
+    render();
+  }
   if (target.dataset.action === "submit") {
     const s = summary(state.checklist);
     state.checklist.status = s.canSubmit ? "pending" : "draft";
@@ -1578,11 +1634,6 @@ if (typeof document !== "undefined") document.addEventListener("input", (event) 
   }
   if (input.dataset?.mileage) {
     state.checklist.mileage[input.dataset.mileage] = input.value;
-    if (input.dataset.mileage === "kmToObject" || input.dataset.mileage === "kmBack") {
-      const to = Number(state.checklist.mileage.kmToObject || 0);
-      const back = Number(state.checklist.mileage.kmBack || 0);
-      state.checklist.mileage.totalKm = to || back ? String(to + back) : "";
-    }
     saveChecklist();
   }
   if (input.dataset?.field) {
@@ -2055,10 +2106,19 @@ async function readZipText(zip, path) {
 
 async function inflateRaw(data) {
   if (typeof DecompressionStream !== "undefined") {
-    const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
-    return new Uint8Array(await new Response(stream).arrayBuffer());
+    try {
+      const stream = new Blob([data]).stream().pipeThrough(new DecompressionStream("deflate-raw"));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch {
+      // Safari may expose DecompressionStream without deflate-raw support.
+    }
   }
-  throw new Error("браузер не поддерживает deflate-raw");
+  try {
+    const { inflateSync } = await import("https://cdn.jsdelivr.net/npm/fflate@0.8.2/esm/browser.js");
+    return inflateSync(data);
+  } catch (error) {
+    throw new Error(`браузер не распаковал Excel: ${error.message}`);
+  }
 }
 
 async function readSharedStrings(zip) {
