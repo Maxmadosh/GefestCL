@@ -773,16 +773,16 @@ const defaultChecklist = {
     { sector: "S3", s2600: "RRU8854E S2600", m1821: "RRU9224E M1821", diplex: "OA4" }
   ],
   materials: [
-    { no: "1", code: "204336", name: "Triplex double clamp (Fiber,Power)", qty: "16", unit: "шт.", status: "confirmed" },
-    { no: "2", code: "Z10749", name: "Battery 12V/135Ah", qty: "8", unit: "шт.", status: "confirmed" },
-    { no: "3", code: "207277 / 206003", name: "FS5A / FS3A", qty: "1", unit: "шт.", status: "mismatch" },
-    { no: "15", code: "209946", name: "DCPD10c", qty: "1", unit: "компл.", status: "confirmed" },
-    { no: "18", code: "205505", name: "Rectifier ZXD3000", qty: "4", unit: "шт.", status: "confirmed" },
-    { no: "21", code: "212315 / Z10799", name: "LPU2 / LPU", qty: "1", unit: "шт.", status: "mismatch" },
-    { no: "30", code: "211348", name: "Cold Shrink Sealing Sleeve", qty: "72", unit: "компл.", status: "review", note: "PDF визуально 73" },
-    { no: "41", code: "242919 / 160112", name: "VC9910A / BC8910A", qty: "1", unit: "шт.", status: "mismatch" },
-    { no: "44-46", code: "212528-212533", name: "R9224E M1821", qty: "3", unit: "шт.", status: "confirmed" },
-    { no: "47-49", code: "225842-225844", name: "RRU8854E S2600", qty: "3", unit: "шт.", status: "confirmed" }
+    { no: "1", code: "204336", name: "Triplex double clamp (Fiber,Power)", qty: "16", unit: "шт.", status: "confirmed", category: "feeder" },
+    { no: "2", code: "Z10749", name: "Battery 12V/135Ah", qty: "8", unit: "шт.", status: "confirmed", category: "power" },
+    { no: "3", code: "207277 / 206003", name: "FS5A / FS3A", qty: "1", unit: "шт.", status: "mismatch", category: "bbu" },
+    { no: "15", code: "209946", name: "DCPD10c", qty: "1", unit: "компл.", status: "confirmed", category: "power" },
+    { no: "18", code: "205505", name: "Rectifier ZXD3000", qty: "4", unit: "шт.", status: "confirmed", category: "power" },
+    { no: "21", code: "212315 / Z10799", name: "LPU2 / LPU", qty: "1", unit: "шт.", status: "mismatch", category: "feeder" },
+    { no: "30", code: "211348", name: "Cold Shrink Sealing Sleeve", qty: "72", unit: "компл.", status: "review", note: "PDF визуально 73", category: "feeder" },
+    { no: "41", code: "242919 / 160112", name: "VC9910A / BC8910A", qty: "1", unit: "шт.", status: "mismatch", category: "cabinet" },
+    { no: "44-46", code: "212528-212533", name: "R9224E M1821", qty: "3", unit: "шт.", status: "confirmed", category: "rru" },
+    { no: "47-49", code: "225842-225844", name: "RRU8854E S2600", qty: "3", unit: "шт.", status: "confirmed", category: "rru" }
   ],
   photos: [
     { id: "general", category: "Общий вид объекта", required: true, attached: true, fileName: "общий_вид.jpg" },
@@ -1018,14 +1018,14 @@ function getChecklistSections(s) {
         ["DCPD", "DCPD10 · 2 шт.", "PDF", "ok", true],
         ["LLVD / BLVD", "DCPD10 #2 / PM5 BBU", "PDF", "ok", true],
         ["АКБ", "Shoto · 2 группы · 270 А/ч", "PDF", "ok", true]
-      ])
+      ]) + categoryMaterials("power")
     },
     {
       id: "rru",
       title: "Передатчики",
       required: true,
       meta: sectionMeta("3 сектора", "blue", true),
-      body: table(["Сектор", "S2600", "M1821", "Diplex"], state.checklist.rrus.map((r) => [r.sector, r.s2600, r.m1821, r.diplex]))
+      body: table(["Сектор", "S2600", "M1821", "Diplex"], state.checklist.rrus.map((r) => [r.sector, r.s2600, r.m1821, r.diplex])) + categoryMaterials("rru")
     },
     {
       id: "diplex",
@@ -1044,7 +1044,7 @@ function getChecklistSections(s) {
         ["FS5A / FS3A", "расхождение в накладных", "Excel", "review", true],
         ["BPQ2", "2 шт.", "PDF", "ok"],
         ["PM5", "2 шт.", "Excel", "ok"]
-      ])
+      ]) + categoryMaterials("bbu")
     },
     {
       id: "bbu9200",
@@ -1055,28 +1055,28 @@ function getChecklistSections(s) {
         ["VEMc1", "1 шт.", "PDF", "ok"],
         ["VPDc1", "1 шт.", "PDF", "ok"],
         ["VFC1", "1 шт.", "PDF", "ok"]
-      ])
+      ]) + categoryMaterials("bbu")
     },
     {
       id: "antennas",
       title: "Антенны и конфигурации",
       required: true,
       meta: sectionMeta("ТЗ", "blue", true),
-      body: table(["Сектор", "Азимут", "Band", "Модель", "RET", "Угол"], state.checklist.antennas.map((a) => [a.sector, a.azimuth, a.band, a.model, a.ret, a.tilt]))
+      body: table(["Сектор", "Азимут", "Band", "Модель", "RET", "Угол"], state.checklist.antennas.map((a) => [a.sector, a.azimuth, a.band, a.model, a.ret, a.tilt])) + categoryMaterials("antenna")
     },
     {
       id: "feeder",
       title: "Фидерная трасса",
       required: true,
       meta: sectionMeta("PDF", "blue", true),
-      body: `<div class="notice">RF по секторам: 1/2 DC/opt · 1/2 DC/opt · 1/2 DC/opt. Коннекторы 4/3-10 сверху/снизу: 12 + 12. Длина GPS RF: 13 м. Клипсы 1/2: 30 шт., Opt: 6 шт., DC ground kit: 6 шт., GPS: 1 шт.</div>`
+      body: `<div class="notice">RF по секторам: 1/2 DC/opt · 1/2 DC/opt · 1/2 DC/opt. Коннекторы 4/3-10 сверху/снизу: 12 + 12. Длина GPS RF: 13 м. Клипсы 1/2: 30 шт., Opt: 6 шт., DC ground kit: 6 шт., GPS: 1 шт.</div>` + categoryMaterials("feeder")
     },
     {
       id: "mount",
       title: "Общий монтаж",
       required: true,
       meta: sectionMeta("чек", "green", true),
-      body: `<div class="check-list">${["Кабеля AC/DC уложены и промаркированы", "Автоматы имеют правильную маркировку", "Заземление выполнено согласно ТТ", "Антенны и джамперы подключены согласно ТЗ", "Сайт чистый после монтажа"].map((item) => `<label><input type="checkbox" checked /> ${item}</label>`).join("")}</div>`
+      body: `<div class="check-list">${["Кабеля AC/DC уложены и промаркированы", "Автоматы имеют правильную маркировку", "Заземление выполнено согласно ТТ", "Антенны и джамперы подключены согласно ТЗ", "Сайт чистый после монтажа"].map((item) => `<label><input type="checkbox" checked /> ${item}</label>`).join("")}</div>` + categoryMaterials("mounting")
     },
     {
       id: "materials",
@@ -1234,13 +1234,73 @@ function mileageForm() {
 }
 
 function materialsList() {
-  return `<div class="materials">${state.checklist.materials.map((m) => `
+  return `${materialCategorySummary()}<div class="materials">${state.checklist.materials.map((m) => `
     <article class="material ${m.status}">
       <span>${m.no}</span>
       <div><strong>${m.name}</strong><p>${m.code} · ${m.qty} ${m.unit}${m.note ? ` · ${m.note}` : ""}</p></div>
-      ${badge(m.status === "confirmed" ? "OK" : m.status === "mismatch" ? "различие" : "проверить", m.status === "confirmed" ? "green" : "yellow")}
+      ${badge(categoryLabel(materialCategory(m)), m.status === "confirmed" ? "green" : "yellow")}
     </article>
   `).join("")}</div>`;
+}
+
+function categoryMaterials(category) {
+  const items = state.checklist.materials.filter((item) => materialCategory(item) === category);
+  if (!items.length) return `<div class="notice compact-note">Позиции из накладной для этого блока пока не найдены.</div>`;
+  return `
+    <h2>Позиции из накладной</h2>
+    <div class="materials compact-materials">${items.map((m) => `
+      <article class="material ${m.status}">
+        <span>${m.no}</span>
+        <div><strong>${m.name}</strong><p>${m.code} · ${m.qty} ${m.unit}${m.note ? ` · ${m.note}` : ""}</p></div>
+        ${badge(categoryLabel(m.category), m.status === "confirmed" ? "green" : "yellow")}
+      </article>
+    `).join("")}</div>
+  `;
+}
+
+function materialCategorySummary() {
+  const counters = new Map();
+  for (const item of state.checklist.materials) {
+    const category = materialCategory(item);
+    counters.set(category, (counters.get(category) || 0) + 1);
+  }
+  const chips = materialCategories
+    .filter(({ key }) => counters.has(key))
+    .map(({ key }) => badge(`${categoryLabel(key)}: ${counters.get(key)}`, "blue"))
+    .join("");
+  return chips ? `<div class="notice compact-note">${chips}</div>` : "";
+}
+
+function materialCategory(item) {
+  return item.category || classifyMaterial(item);
+}
+
+const materialCategories = [
+  { key: "power", label: "питание" },
+  { key: "rru", label: "RRU" },
+  { key: "bbu", label: "BBU" },
+  { key: "antenna", label: "антенна" },
+  { key: "feeder", label: "кабель" },
+  { key: "mounting", label: "монтаж" },
+  { key: "cabinet", label: "шкаф" },
+  { key: "material", label: "прочее" }
+];
+
+function categoryLabel(category) {
+  return materialCategories.find((item) => item.key === category)?.label || "прочее";
+}
+
+function classifyMaterial(item) {
+  const text = `${item.code || ""} ${item.name || ""}`.toLowerCase();
+  if (/battery|акб|rectifier|zxd|dcpd|b201|csu|power system|monitoring unit/.test(text)) return "power";
+  if (/rru|rsu|r9224|r8854|rru8854|rru9224|s2600|m1821/.test(text)) return "rru";
+  if (/bbu|fs3|fs5|bpq|bpn|bpk|ccf|ubpg|vfc|vem|vpd|pm5|fan/.test(text)) return "bbu";
+  if (/antenna|антенн|commscope|mb4p|gps antenna|ret motor/.test(text)) return "antenna";
+  if (/jumper|connector|cold shrink|shrink|lpu|aisg|fiber|feeder|ground kit|triplex|diplexer|quad.*diplexer/.test(text)) return "feeder";
+  if (/installation|fitting|frame|rack|roof|foundation|holder|bracket|clamp|label|tape|buckle|tie|seal|sleeve/.test(text)) return "mounting";
+  if (/cable|кабель|pvc|opt|dc cable|pm power/.test(text)) return "feeder";
+  if (/bc|pc|vc|tec|bs8900|bs9900|cabinet/.test(text)) return "cabinet";
+  return "material";
 }
 
 function accordionSection(id, title, meta, body, required = false) {
@@ -1389,7 +1449,8 @@ render();
 export const __gefestTestApi = {
   defaultChecklist,
   summary,
-  mergeParsedMaterials
+  mergeParsedMaterials,
+  classifyMaterial
 };
 
 function mergeParsedMaterials(parsed, previous) {
@@ -1403,6 +1464,7 @@ function mergeParsedMaterials(parsed, previous) {
       qty: item.qty,
       unit: item.unit,
       inventoryNumber: item.inventoryNumber,
+      category: prior?.category || classifyMaterial(item),
       status: prior?.status === "mismatch" ? "mismatch" : "confirmed",
       note: prior?.note || ""
     };
