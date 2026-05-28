@@ -764,7 +764,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.7-delivery-compare";
+const APP_VERSION = "v0.8-tz-autofill";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -801,7 +801,7 @@ const defaultChecklist = {
     { id: "doc-tz", type: "ТЗ Word", fileName: "Osk-Shkola65COW.docx", status: "recognized", note: "азимуты, антенны, RRU" },
     { id: "doc-mount", type: "Накладная монтаж", fileName: "Osk-Shkola65COW (54469) - монтаж БС.xlsx", status: "partial", note: "5 расхождений" },
     { id: "doc-alt", type: "Накладная монтаж", fileName: "Osk-Shkola65COW (54469).xlsx", status: "partial", note: "альтернативная версия" },
-    { id: "doc-pdf", type: "Скан чек-листа", fileName: "2026-03-02-0001.pdf", status: "manual", note: "рукопись требует проверки" }
+    { id: "doc-dismantle", type: "Накладная демонтаж", fileName: "не загружена", status: "manual", note: "если есть демонтаж" }
   ],
   fields: [
     { key: "site", label: "Объект", value: "54469 · Osk-Shkola65COW", source: "ТЗ/PDF", status: "ok" },
@@ -888,6 +888,7 @@ function loadChecklist() {
 function normalizeChecklist(checklist) {
   checklist.profile = { ...defaultChecklist.profile, ...(checklist.profile || {}) };
   checklist.object = { ...defaultChecklist.object, ...(checklist.object || {}) };
+  checklist.documents = normalizeDocuments(checklist.documents);
   checklist.mileage = { ...defaultChecklist.mileage, ...(checklist.mileage || {}) };
   checklist.manualFields = { ...(checklist.manualFields || {}) };
   checklist.deliveryNotes = { ...(checklist.deliveryNotes || {}) };
@@ -898,6 +899,11 @@ function normalizeChecklist(checklist) {
     category: item.category || classifyMaterial(item)
   }));
   return checklist;
+}
+
+function normalizeDocuments(documents) {
+  const byId = new Map((documents || []).filter((doc) => doc.id !== "doc-pdf").map((doc) => [doc.id, doc]));
+  return defaultChecklist.documents.map((fallback) => ({ ...fallback, ...(byId.get(fallback.id) || {}) }));
 }
 
 function saveChecklist() {
@@ -1010,7 +1016,7 @@ function renderCreate() {
       <h2>Загрузить файлы</h2>
       ${documentsList()}
       ${uploadResultNotice()}
-      <div class="notice">После загрузки ТЗ и накладных данные автоматически попадут в раздел “Чек-лист”. Сейчас Excel-накладная уже читается автоматически.</div>
+      <div class="notice">После загрузки ТЗ заполняются ID сайта и название объекта. После загрузки Excel-накладных заполняются материалы и расхождения.</div>
       <button class="secondary wide" data-screen="checklist">Открыть созданный чек-лист · ${s.autofillPercent}%</button>
     </section>
     ${tabs()}
@@ -1591,7 +1597,7 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
       doc.fileName = fileName;
       doc.status = "manual";
       doc.note = "чтение файла...";
-      applyFileNameHints(fileName);
+      applyDocumentHints(doc, fileName);
       saveChecklist();
       render();
       if (fileName.toLowerCase().endsWith(".xlsx")) {
@@ -1641,17 +1647,46 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
   }
 });
 
-function applyFileNameHints(fileName) {
-  const normalized = fileName.replace(/\.[^.]+$/, "");
-  const siteMatch = normalized.match(/([A-Za-z]{2,}[-_A-Za-z0-9]*?)\s*\(?(\d{4,6})\)?/);
-  const idMatch = normalized.match(/\b(\d{4,6})\b/);
-  if (siteMatch) {
-    state.checklist.object.siteName = siteMatch[1].replace(/[_-]+$/, "");
-    state.checklist.object.siteId = siteMatch[2];
-  } else if (idMatch) {
-    state.checklist.object.siteId = idMatch[1];
+function applyDocumentHints(doc, fileName) {
+  const hints = extractObjectHints(fileName);
+  if (hints.siteId) state.checklist.object.siteId = hints.siteId;
+  if (hints.siteName) state.checklist.object.siteName = hints.siteName;
+  if (hints.workType && doc.id === "doc-tz") state.checklist.object.workType = hints.workType;
+  syncObjectFieldsFromObject(doc.id === "doc-tz" ? "ТЗ" : "файл");
+  if (doc.id === "doc-tz") {
+    doc.status = hints.siteId || hints.siteName ? "recognized" : "manual";
+    doc.note = hints.siteId || hints.siteName ? "объект заполнен из имени файла" : "ТЗ прикреплено, данные уточнить вручную";
   }
-  state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`;
+}
+
+function extractObjectHints(fileName) {
+  const normalized = fileName.replace(/\.[^.]+$/, "");
+  const clean = normalized
+    .replace(/\s*[-–—]\s*(монтаж|демонтаж|тз|техническое задание|накладная).*$/i, "")
+    .trim();
+  const parenthesizedId = clean.match(/\((\d{4,6})\)/);
+  const anyId = clean.match(/\b(\d{4,6})\b/);
+  const siteId = parenthesizedId?.[1] || anyId?.[1] || "";
+  let siteName = clean
+    .replace(/\(?\b\d{4,6}\b\)?/g, "")
+    .replace(/\s{2,}/g, " ")
+    .replace(/[-_ ]+$/g, "")
+    .trim();
+  if (!siteName && /[A-Za-zА-Яа-я]/.test(clean)) siteName = clean;
+  const workType = /демонтаж/i.test(normalized)
+    ? "Демонтаж"
+    : /swap|расшир/i.test(normalized)
+      ? "Расширение / SWAP"
+      : /монтаж/i.test(normalized)
+        ? "Монтаж новой БС"
+        : "";
+  return { siteId, siteName, workType };
+}
+
+function syncObjectFieldsFromObject(source = "ТЗ") {
+  updateField("site", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`, source);
+  updateField("work", state.checklist.object.workType, source);
+  updateField("siteType", state.checklist.object.siteType, source);
 }
 
 function applyMaterialHintsToChecklist() {
