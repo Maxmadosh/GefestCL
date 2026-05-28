@@ -835,7 +835,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.11-sync-photo";
+const APP_VERSION = "v0.12-clean-warnings";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -992,8 +992,6 @@ function summary(checklist) {
   const mileageMissing = !checklist.mileage.totalKm || !checklist.mileage.departurePoint || !checklist.mileage.objectDestination || !checklist.mileage.returnDestination;
   const warnings = [];
   if (deliveryMismatchCount) warnings.unshift(`В накладных найдено расхождений: ${deliveryMismatchCount}. Проверь раздел “Расхождения накладных”.`);
-  const reviewMaterials = checklist.materials.filter((item) => item.status !== "confirmed");
-  if (reviewMaterials.length) warnings.push(`Материалы к проверке: ${reviewMaterials.length}.`);
   if (mileageMissing) warnings.push("Пробег, точка выезда, объект и точка возврата должны быть заполнены монтажником перед отправкой.");
   if (missingPhotos) warnings.push(`Не хватает обязательных фото: ${missingPhotos}.`);
   return {
