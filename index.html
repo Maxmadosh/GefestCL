@@ -141,6 +141,44 @@ small {
 
 .wide { width: 100%; }
 
+.hidden-file {
+  position: fixed;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.action-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.action-card {
+  min-height: 96px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 14px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+  box-shadow: 0 8px 22px rgba(36, 81, 115, 0.06);
+}
+
+.action-card strong {
+  display: block;
+  font-size: 17px;
+  line-height: 1.2;
+}
+
+.action-card span {
+  display: block;
+  margin-top: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.35;
+}
+
 .draft-card, .upload-card, .material, .source-field, .photo-card, .notice, .warning, .report-preview, .summary-grid, .profile-card, .accordion {
   background: var(--surface);
   border: 1px solid var(--line);
@@ -764,13 +802,14 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.8-tz-autofill";
+const APP_VERSION = "v0.9-start-flow";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
   status: "draft",
   sendChannel: "email",
   profile: {
+    registered: false,
     brigadierFullName: "требует заполнения",
     phone: "0509 366 666",
     contractorCompany: "ОсОО Гефест Строй Монтаж",
@@ -887,6 +926,8 @@ function loadChecklist() {
 
 function normalizeChecklist(checklist) {
   checklist.profile = { ...defaultChecklist.profile, ...(checklist.profile || {}) };
+  checklist.profile.registered = Boolean(checklist.profile.registered) ||
+    Boolean(checklist.profile.brigadierFullName && !checklist.profile.brigadierFullName.includes("требует") && checklist.profile.phone);
   checklist.object = { ...defaultChecklist.object, ...(checklist.object || {}) };
   checklist.documents = normalizeDocuments(checklist.documents);
   checklist.mileage = { ...defaultChecklist.mileage, ...(checklist.mileage || {}) };
@@ -979,47 +1020,42 @@ function tabs() {
 }
 
 function renderCreate() {
-  const s = summary(state.checklist);
+  return `
+    ${appHeader("Создать", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`)}
+    <section class="screen-body">
+      <div class="action-stack">
+        <button class="action-card" data-action="open-invoices">
+          <strong>Загрузить накладные</strong>
+          <span>Можно выбрать несколько Excel-файлов монтажа и демонтажа</span>
+        </button>
+        <button class="action-card" data-action="open-documents">
+          <strong>Загрузить документы</strong>
+          <span>ТЗ Word/PDF заполнит ID, название объекта и тип работ</span>
+        </button>
+        <button class="primary wide" data-action="new-checklist">Сформировать чек-лист</button>
+      </div>
+      <input id="invoice-files" class="hidden-file" type="file" accept=".xlsx" multiple data-bulk="invoices" />
+      <input id="document-files" class="hidden-file" type="file" accept=".doc,.docx,.pdf" multiple data-bulk="documents" />
+    </section>
+    ${tabs()}
+  `;
+}
+
+function renderRegistration() {
   const profile = state.checklist.profile;
   return `
-    ${appHeader("Создать", "Профиль, объект и загрузка файлов")}
+    ${appHeader("Регистрация", "Заполняется один раз")}
     <section class="screen-body">
-      <button class="primary wide" data-action="new-checklist">+ Создать чек-лист</button>
-
-      <h2>Аккаунт / Бригадир</h2>
-      <article class="profile-card">
-        <div class="site-mark">A</div>
-        <div>
-          <strong>${escapeHtml(profile.brigadierFullName)}</strong>
-          <p>${escapeHtml(profile.contractorCompany)} · ${escapeHtml(profile.phone)}</p>
-        </div>
-        ${badge(profile.brigadierFullName.includes("требует") ? "заполнить" : "готово", profile.brigadierFullName.includes("требует") ? "yellow" : "green")}
-      </article>
-
+      <h2>Бригадир</h2>
       <div class="field-grid">
-        ${profileInput("ФИО бригадира", "brigadierFullName", profile.brigadierFullName)}
+        ${profileInput("Фамилия Имя Отчество", "brigadierFullName", profile.brigadierFullName.includes("требует") ? "" : profile.brigadierFullName)}
         ${profileInput("Телефон", "phone", profile.phone)}
         ${profileInput("ООО / подрядчик", "contractorCompany", profile.contractorCompany)}
         ${profileInput("Заказчик", "customer", profile.customer)}
-        ${profileInput("Склад / через кого", "warehouse", profile.warehouse)}
         ${profileInput("Регион", "region", profile.region)}
       </div>
-
-      <h2>Новый чек-лист</h2>
-      <div class="field-grid">
-        ${objectInput("ID сайта", "siteId", state.checklist.object.siteId)}
-        ${objectInput("Название сайта", "siteName", state.checklist.object.siteName)}
-        ${objectInput("Тип работ", "workType", state.checklist.object.workType)}
-        ${objectInput("Тип объекта", "siteType", state.checklist.object.siteType)}
-      </div>
-
-      <h2>Загрузить файлы</h2>
-      ${documentsList()}
-      ${uploadResultNotice()}
-      <div class="notice">После загрузки ТЗ заполняются ID сайта и название объекта. После загрузки Excel-накладных заполняются материалы и расхождения.</div>
-      <button class="secondary wide" data-screen="checklist">Открыть созданный чек-лист · ${s.autofillPercent}%</button>
+      <button class="primary wide" data-action="save-registration">Сохранить профиль</button>
     </section>
-    ${tabs()}
   `;
 }
 
@@ -1478,6 +1514,10 @@ function reportPreview(s) {
 function render() {
   if (typeof document === "undefined") return;
   const app = document.querySelector("#app");
+  if (!state.checklist.profile.registered) {
+    app.innerHTML = `<main class="mobile-frame">${renderRegistration()}</main>`;
+    return;
+  }
   const screens = {
     create: renderCreate,
     checklist: renderChecklist,
@@ -1491,6 +1531,16 @@ if (typeof document !== "undefined") document.addEventListener("click", (event) 
   if (!target) return;
   if (target.dataset.screen) setScreen(target.dataset.screen);
   if (target.dataset.action === "home") setScreen("create");
+  if (target.dataset.action === "open-invoices") document.querySelector("#invoice-files")?.click();
+  if (target.dataset.action === "open-documents") document.querySelector("#document-files")?.click();
+  if (target.dataset.action === "save-registration") {
+    state.checklist.profile.registered = Boolean(state.checklist.profile.brigadierFullName.trim() && state.checklist.profile.phone.trim());
+    state.checklist.object.brigadierName = state.checklist.profile.brigadierFullName;
+    state.checklist.object.brigadierPhone = state.checklist.profile.phone;
+    state.checklist.object.contractorCompany = state.checklist.profile.contractorCompany;
+    saveChecklist();
+    render();
+  }
   if (target.dataset.section) {
     if (state.openSections.has(target.dataset.section)) state.openSections.delete(target.dataset.section);
     else state.openSections.add(target.dataset.section);
@@ -1591,6 +1641,11 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
   const input = event.target;
   const fileName = input.files?.[0]?.name;
   if (!fileName) return;
+  if (input.dataset.bulk) {
+    processBulkFiles(input.dataset.bulk, [...input.files]);
+    input.value = "";
+    return;
+  }
   if (input.dataset.doc) {
     const doc = state.checklist.documents.find((item) => item.id === input.dataset.doc);
     if (doc) {
@@ -1646,6 +1701,87 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
     }
   }
 });
+
+async function processBulkFiles(kind, files) {
+  for (const file of files) {
+    if (kind === "invoices") {
+      const doc = nextInvoiceDocument(file.name);
+      await processInvoiceFile(doc, file);
+    } else {
+      const doc = nextTechnicalDocument(file.name);
+      processTechnicalFile(doc, file);
+    }
+  }
+  saveChecklist();
+  render();
+}
+
+function nextInvoiceDocument(fileName) {
+  const slots = ["doc-mount", "doc-alt", "doc-dismantle"];
+  const freeSlot = slots
+    .map((id) => state.checklist.documents.find((doc) => doc.id === id))
+    .find((doc) => doc && (!state.checklist.deliveryNotes[doc.id] || doc.fileName === "не загружена"));
+  if (freeSlot) return freeSlot;
+  const doc = {
+    id: `invoice-${Date.now()}-${state.checklist.documents.length}`,
+    type: /демонтаж/i.test(fileName) ? "Накладная демонтаж" : "Накладная монтаж",
+    fileName,
+    status: "manual",
+    note: "чтение файла..."
+  };
+  state.checklist.documents.push(doc);
+  return doc;
+}
+
+function nextTechnicalDocument(fileName) {
+  const doc = state.checklist.documents.find((item) => item.id === "doc-tz");
+  if (doc && doc.fileName === defaultChecklist.documents[0].fileName) return doc;
+  const extra = {
+    id: `doc-extra-${Date.now()}-${state.checklist.documents.length}`,
+    type: /\.pdf$/i.test(fileName) ? "ТЗ PDF" : "ТЗ Word",
+    fileName,
+    status: "manual",
+    note: "чтение файла..."
+  };
+  state.checklist.documents.push(extra);
+  return extra;
+}
+
+function processTechnicalFile(doc, file) {
+  doc.fileName = file.name;
+  doc.status = "manual";
+  doc.note = "чтение файла...";
+  applyDocumentHints(doc, file.name);
+}
+
+async function processInvoiceFile(doc, file) {
+  doc.fileName = file.name;
+  doc.status = "manual";
+  doc.note = "чтение файла...";
+  applyDocumentHints(doc, file.name);
+  try {
+    const result = await parseXlsxDeliveryNote(file);
+    doc.status = "recognized";
+    if (result.siteName) {
+      state.checklist.object.siteName = result.siteName;
+      state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
+    }
+    state.checklist.deliveryNotes[doc.id] = {
+      id: doc.id,
+      type: doc.type,
+      fileName: file.name,
+      materials: result.materials,
+      parsedAt: new Date().toISOString()
+    };
+    state.checklist.materials = mergeDeliveryMaterials(state.checklist.deliveryNotes, state.checklist.materials);
+    state.checklist.deliveryMismatches = compareDeliveryNotes(state.checklist.deliveryNotes);
+    doc.note = `${result.materials.length} позиций распознано · расхождений ${state.checklist.deliveryMismatches.length}`;
+    applyMaterialHintsToChecklist();
+  } catch (error) {
+    doc.status = "error";
+    doc.note = `ошибка чтения: ${error.message}`;
+  }
+}
 
 function applyDocumentHints(doc, fileName) {
   const hints = extractObjectHints(fileName);
