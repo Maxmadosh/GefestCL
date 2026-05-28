@@ -381,7 +381,7 @@ small {
   overflow: hidden;
 }
 
-.file-button input, .photo-action input {
+.file-button input {
   position: absolute;
   inset: 0;
   opacity: 0;
@@ -835,7 +835,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.10-report-mileage";
+const APP_VERSION = "v0.11-sync-photo";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -990,11 +990,10 @@ function summary(checklist) {
     checklist.materials.filter((item) => item.status !== "confirmed").length +
     deliveryMismatchCount;
   const mileageMissing = !checklist.mileage.totalKm || !checklist.mileage.departurePoint || !checklist.mileage.objectDestination || !checklist.mileage.returnDestination;
-  const warnings = [
-    "Рукописные ФИО и часть телефонов в скане требуют ручной проверки.",
-    "Количество Cold Shrink: накладная 72, в скане визуально похоже на 73."
-  ];
+  const warnings = [];
   if (deliveryMismatchCount) warnings.unshift(`В накладных найдено расхождений: ${deliveryMismatchCount}. Проверь раздел “Расхождения накладных”.`);
+  const reviewMaterials = checklist.materials.filter((item) => item.status !== "confirmed");
+  if (reviewMaterials.length) warnings.push(`Материалы к проверке: ${reviewMaterials.length}.`);
   if (mileageMissing) warnings.push("Пробег, точка выезда, объект и точка возврата должны быть заполнены монтажником перед отправкой.");
   if (missingPhotos) warnings.push(`Не хватает обязательных фото: ${missingPhotos}.`);
   return {
@@ -1320,10 +1319,10 @@ function photosGrid() {
             <p>${photo.required ? "обязательно" : "дополнительно"}</p>
             ${photo.fileName ? `<small>${escapeHtml(photo.fileName)}</small>` : ""}
           </div>
-          <label class="photo-action">
+          <button class="photo-action" data-photo-trigger="${photo.id}" type="button">
             ${photo.attached ? "✓" : "+"}
-            <input type="file" accept="image/*" data-photo="${photo.id}" />
-          </label>
+          </button>
+          <input id="photo-${photo.id}" class="hidden-file" type="file" accept="image/*" data-photo="${photo.id}" />
         </article>
       `).join("")}</div>`;
 }
@@ -1579,12 +1578,13 @@ function render() {
 }
 
 if (typeof document !== "undefined") document.addEventListener("click", (event) => {
-  const target = event.target.closest("[data-screen], [data-action], [data-channel], [data-section]");
+  const target = event.target.closest("[data-screen], [data-action], [data-channel], [data-section], [data-photo-trigger], [data-report-format]");
   if (!target) return;
   if (target.dataset.screen) setScreen(target.dataset.screen);
   if (target.dataset.action === "home") setScreen("create");
   if (target.dataset.action === "open-invoices") document.querySelector("#invoice-files")?.click();
   if (target.dataset.action === "open-documents") document.querySelector("#document-files")?.click();
+  if (target.dataset.photoTrigger) document.querySelector(`#photo-${CSS.escape(target.dataset.photoTrigger)}`)?.click();
   if (target.dataset.action === "save-registration") {
     state.checklist.profile.registered = Boolean(state.checklist.profile.brigadierFullName.trim() && state.checklist.profile.phone.trim());
     state.checklist.object.brigadierName = state.checklist.profile.brigadierFullName;
@@ -1629,6 +1629,7 @@ if (typeof document !== "undefined") document.addEventListener("input", (event) 
     state.checklist.object[input.dataset.object] = input.value;
     if (input.dataset.object === "siteId" || input.dataset.object === "siteName") {
       state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`;
+      syncMileageDestination();
     }
     saveChecklist();
   }
@@ -1677,6 +1678,7 @@ function syncObjectFromField(field) {
     const [siteId, siteName] = field.value.split("·").map((part) => part.trim());
     if (siteId) state.checklist.object.siteId = siteId;
     if (siteName) state.checklist.object.siteName = siteName;
+    syncMileageDestination();
   }
   if (field.key === "work") state.checklist.object.workType = field.value;
   if (field.key === "siteType") state.checklist.object.siteType = field.value;
@@ -1690,8 +1692,9 @@ function syncObjectFromField(field) {
 
 if (typeof document !== "undefined") document.addEventListener("change", (event) => {
   const input = event.target;
-  const fileName = input.files?.[0]?.name;
-  if (!fileName) return;
+  const file = input.files?.[0];
+  const fileName = file?.name || (input.dataset.photo ? `Фото ${new Date().toLocaleString("ru-RU")}` : "");
+  if (!file && !input.files?.length) return;
   if (input.dataset.bulk) {
     processBulkFiles(input.dataset.bulk, [...input.files]);
     input.value = "";
@@ -1707,13 +1710,14 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
       saveChecklist();
       render();
       if (fileName.toLowerCase().endsWith(".xlsx")) {
-        parseXlsxDeliveryNote(input.files[0])
+        parseXlsxDeliveryNote(file)
           .then((result) => {
             doc.status = "recognized";
             doc.note = `${result.materials.length} позиций распознано`;
             if (result.siteName) {
               state.checklist.object.siteName = result.siteName;
               state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
+              syncMileageDestination();
             }
             state.checklist.deliveryNotes[doc.id] = {
               id: doc.id,
@@ -1816,6 +1820,7 @@ async function processInvoiceFile(doc, file) {
     if (result.siteName) {
       state.checklist.object.siteName = result.siteName;
       state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
+      syncMileageDestination();
     }
     state.checklist.deliveryNotes[doc.id] = {
       id: doc.id,
@@ -1874,6 +1879,11 @@ function syncObjectFieldsFromObject(source = "ТЗ") {
   updateField("site", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`, source);
   updateField("work", state.checklist.object.workType, source);
   updateField("siteType", state.checklist.object.siteType, source);
+  syncMileageDestination();
+}
+
+function syncMileageDestination() {
+  state.checklist.mileage.objectDestination = state.checklist.object.siteName || `${state.checklist.object.siteId}`;
 }
 
 function applyMaterialHintsToChecklist() {
