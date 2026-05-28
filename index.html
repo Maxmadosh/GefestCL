@@ -32,7 +32,7 @@ body {
   color: var(--text);
 }
 
-button, input {
+button, input, textarea {
   font: inherit;
 }
 
@@ -248,6 +248,27 @@ small {
   line-height: 1.25;
 }
 
+.source-field .inline-edit {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 720;
+  outline: none;
+}
+
+.source-field .inline-edit:focus,
+.editable-table input:focus,
+.material input:focus,
+.notes:focus {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(42, 171, 238, 0.12);
+}
+
 .source-field.review {
   background: #fffdf7;
   border-color: #f5dc97;
@@ -391,6 +412,34 @@ small {
 .material.mismatch {
   border-color: #f5dc97;
   background: #fffdf7;
+}
+
+.material input,
+.editable-table input {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 7px 8px;
+  background: var(--surface-2);
+  color: var(--text);
+  outline: none;
+}
+
+.material-name {
+  margin-bottom: 7px;
+  font-weight: 760;
+}
+
+.material-edit-row {
+  display: grid;
+  grid-template-columns: 1fr 58px 54px;
+  gap: 6px;
+}
+
+.material-note {
+  margin-top: 6px;
+  font-size: 12px;
 }
 
 .photo-grid {
@@ -807,6 +856,7 @@ const defaultChecklist = {
     vehicle: "",
     comment: ""
   },
+  notes: "",
   updatedAt: new Date().toISOString()
 };
 
@@ -984,7 +1034,7 @@ function getChecklistSections(s) {
       title: "Общие данные объекта",
       required: true,
       meta: sectionMeta("ТЗ/PDF", "blue", true),
-      body: `<div class="field-grid">${state.checklist.fields.slice(0, 8).map((field) => sourceField(field.label, field.value, field.source, field.status, true)).join("")}</div>`
+      body: `<div class="field-grid">${state.checklist.fields.slice(0, 8).map((field, index) => sourceField(field.label, field.value, field.source, field.status, true, `data-field="${index}"`)).join("")}</div>`
     },
     {
       id: "brigade",
@@ -992,12 +1042,12 @@ function getChecklistSections(s) {
       required: true,
       meta: sectionMeta("профиль", state.checklist.profile.brigadierFullName.includes("требует") ? "yellow" : "green", true),
       body: `<div class="field-grid">
-        ${sourceField("ФИО бригадира", state.checklist.profile.brigadierFullName, "Профиль", state.checklist.profile.brigadierFullName.includes("требует") ? "review" : "ok", true)}
-        ${sourceField("Телефон", state.checklist.profile.phone, "Профиль", "ok", true)}
-        ${sourceField("Организация", state.checklist.profile.contractorCompany, "Профиль", "ok", true)}
-        ${sourceField("Заказчик", state.checklist.profile.customer, "Профиль", "ok", true)}
-        ${sourceField("Склад / через кого", state.checklist.profile.warehouse, "Профиль", "ok")}
-        ${sourceField("Регион", state.checklist.profile.region, "Профиль", "ok")}
+        ${sourceField("ФИО бригадира", state.checklist.profile.brigadierFullName, "Профиль", state.checklist.profile.brigadierFullName.includes("требует") ? "review" : "ok", true, `data-profile="brigadierFullName"`)}
+        ${sourceField("Телефон", state.checklist.profile.phone, "Профиль", "ok", true, `data-profile="phone"`)}
+        ${sourceField("Организация", state.checklist.profile.contractorCompany, "Профиль", "ok", true, `data-profile="contractorCompany"`)}
+        ${sourceField("Заказчик", state.checklist.profile.customer, "Профиль", "ok", true, `data-profile="customer"`)}
+        ${sourceField("Склад / через кого", state.checklist.profile.warehouse, "Профиль", "ok", false, `data-profile="warehouse"`)}
+        ${sourceField("Регион", state.checklist.profile.region, "Профиль", "ok", false, `data-profile="region"`)}
       </div>`
     },
     {
@@ -1005,7 +1055,7 @@ function getChecklistSections(s) {
       title: "Электропитание базовой станции",
       required: true,
       meta: sectionMeta("PDF/Excel", "blue", true),
-      body: `<div class="field-grid">${state.checklist.fields.slice(8).map((field) => sourceField(field.label, field.value, field.source, field.status, true)).join("")}</div>`
+      body: `<div class="field-grid">${state.checklist.fields.slice(8).map((field, index) => sourceField(field.label, field.value, field.source, field.status, true, `data-field="${index + 8}"`)).join("")}</div>`
     },
     {
       id: "bts",
@@ -1025,14 +1075,14 @@ function getChecklistSections(s) {
       title: "Передатчики",
       required: true,
       meta: sectionMeta("3 сектора", "blue", true),
-      body: table(["Сектор", "S2600", "M1821", "Diplex"], state.checklist.rrus.map((r) => [r.sector, r.s2600, r.m1821, r.diplex])) + categoryMaterials("rru")
+      body: editableTable("rrus", ["Сектор", "S2600", "M1821", "Diplex"], ["sector", "s2600", "m1821", "diplex"], state.checklist.rrus) + categoryMaterials("rru")
     },
     {
       id: "diplex",
       title: "Diplex / Triplex",
       required: true,
       meta: sectionMeta("OA4", "blue"),
-      body: table(["Сектор", "Тип слева", "Тип справа", "Статус"], state.checklist.rrus.map((r) => [r.sector, r.diplex, r.diplex, "соответствует"]))
+      body: editableTable("rrus", ["Сектор", "Тип слева", "Тип справа", "Статус"], ["sector", "diplex", "diplex", "status"], state.checklist.rrus)
     },
     {
       id: "bbu8200",
@@ -1062,7 +1112,7 @@ function getChecklistSections(s) {
       title: "Антенны и конфигурации",
       required: true,
       meta: sectionMeta("ТЗ", "blue", true),
-      body: table(["Сектор", "Азимут", "Band", "Модель", "RET", "Угол"], state.checklist.antennas.map((a) => [a.sector, a.azimuth, a.band, a.model, a.ret, a.tilt])) + categoryMaterials("antenna")
+      body: editableTable("antennas", ["Сектор", "Азимут", "Band", "Модель", "RET", "Угол"], ["sector", "azimuth", "band", "model", "ret", "tilt"], state.checklist.antennas) + categoryMaterials("antenna")
     },
     {
       id: "feeder",
@@ -1110,8 +1160,8 @@ function getChecklistSections(s) {
       id: "notes",
       title: "Лист замечаний",
       required: false,
-      meta: sectionMeta("пусто", "blue"),
-      body: `<textarea class="notes" placeholder="Замечания по приемке"></textarea>`
+      meta: sectionMeta(state.checklist.notes ? "есть" : "пусто", state.checklist.notes ? "yellow" : "blue"),
+      body: `<textarea class="notes" data-notes placeholder="Замечания по приемке">${escapeHtml(state.checklist.notes || "")}</textarea>`
     },
     {
       id: "send",
@@ -1181,10 +1231,10 @@ function sendPanel(s) {
   `;
 }
 
-function sourceField(label, value, source, status = "ok", required = false) {
+function sourceField(label, value, source, status = "ok", required = false, editAttr = "") {
   return `<article class="source-field ${status}">
     <div><span>${label}${required ? " *" : ""}</span>${badge(source, status === "review" ? "yellow" : "blue")}</div>
-    <strong>${escapeHtml(value)}</strong>
+    ${editAttr ? `<input class="inline-edit" type="text" value="${escapeHtml(value)}" ${editAttr} />` : `<strong>${escapeHtml(value)}</strong>`}
   </article>`;
 }
 
@@ -1237,7 +1287,15 @@ function materialsList() {
   return `${materialCategorySummary()}<div class="materials">${state.checklist.materials.map((m) => `
     <article class="material ${m.status}">
       <span>${m.no}</span>
-      <div><strong>${m.name}</strong><p>${m.code} · ${m.qty} ${m.unit}${m.note ? ` · ${m.note}` : ""}</p></div>
+      <div>
+        <input class="material-name" type="text" value="${escapeHtml(m.name)}" data-material="${m.no}" data-material-key="name" />
+        <div class="material-edit-row">
+          <input type="text" value="${escapeHtml(m.code)}" data-material="${m.no}" data-material-key="code" aria-label="Код" />
+          <input type="text" value="${escapeHtml(m.qty)}" data-material="${m.no}" data-material-key="qty" aria-label="Количество" />
+          <input type="text" value="${escapeHtml(m.unit)}" data-material="${m.no}" data-material-key="unit" aria-label="Ед." />
+        </div>
+        <input class="material-note" type="text" value="${escapeHtml(m.note || "")}" data-material="${m.no}" data-material-key="note" placeholder="Комментарий" />
+      </div>
       ${badge(categoryLabel(materialCategory(m)), m.status === "confirmed" ? "green" : "yellow")}
     </article>
   `).join("")}</div>`;
@@ -1251,8 +1309,8 @@ function categoryMaterials(category) {
     <div class="materials compact-materials">${items.map((m) => `
       <article class="material ${m.status}">
         <span>${m.no}</span>
-        <div><strong>${m.name}</strong><p>${m.code} · ${m.qty} ${m.unit}${m.note ? ` · ${m.note}` : ""}</p></div>
-        ${badge(categoryLabel(m.category), m.status === "confirmed" ? "green" : "yellow")}
+        <div><strong>${escapeHtml(m.name)}</strong><p>${escapeHtml(m.code)} · ${escapeHtml(m.qty)} ${escapeHtml(m.unit)}${m.note ? ` · ${escapeHtml(m.note)}` : ""}</p></div>
+        ${badge(categoryLabel(materialCategory(m)), m.status === "confirmed" ? "green" : "yellow")}
       </article>
     `).join("")}</div>
   `;
@@ -1319,6 +1377,15 @@ function table(headers, rows) {
   return `<div class="table" style="--cols:${headers.length}">
     <div class="table-row head">${headers.map((h) => `<span>${h}</span>`).join("")}</div>
     ${rows.map((row) => `<div class="table-row">${row.map((cell) => `<span>${escapeHtml(cell)}</span>`).join("")}</div>`).join("")}
+  </div>`;
+}
+
+function editableTable(collection, headers, keys, rows) {
+  return `<div class="table editable-table" style="--cols:${headers.length}">
+    <div class="table-row head">${headers.map((h) => `<span>${h}</span>`).join("")}</div>
+    ${rows.map((row, index) => `<div class="table-row">${keys.map((key) => `
+      <span><input type="text" value="${escapeHtml(key === "status" ? row[key] || "соответствует" : row[key])}" data-list="${collection}" data-index="${index}" data-key="${key}" /></span>
+    `).join("")}</div>`).join("")}
   </div>`;
 }
 
@@ -1397,7 +1464,53 @@ if (typeof document !== "undefined") document.addEventListener("input", (event) 
     }
     saveChecklist();
   }
+  if (input.dataset?.field) {
+    const field = state.checklist.fields[Number(input.dataset.field)];
+    if (field) {
+      field.value = input.value;
+      field.status = input.value.trim() ? "ok" : "review";
+      syncObjectFromField(field);
+      saveChecklist();
+    }
+  }
+  if (input.dataset?.list) {
+    const row = state.checklist[input.dataset.list]?.[Number(input.dataset.index)];
+    if (row) {
+      row[input.dataset.key] = input.value;
+      saveChecklist();
+    }
+  }
+  if (input.dataset?.material) {
+    const material = state.checklist.materials.find((item) => item.no === input.dataset.material);
+    if (material) {
+      material[input.dataset.materialKey] = input.value;
+      if (input.dataset.materialKey === "name" || input.dataset.materialKey === "code") {
+        material.category = classifyMaterial(material);
+      }
+      saveChecklist();
+    }
+  }
+  if ("notes" in input.dataset) {
+    state.checklist.notes = input.value;
+    saveChecklist();
+  }
 });
+
+function syncObjectFromField(field) {
+  if (field.key === "site") {
+    const [siteId, siteName] = field.value.split("·").map((part) => part.trim());
+    if (siteId) state.checklist.object.siteId = siteId;
+    if (siteName) state.checklist.object.siteName = siteName;
+  }
+  if (field.key === "work") state.checklist.object.workType = field.value;
+  if (field.key === "siteType") state.checklist.object.siteType = field.value;
+  if (field.key === "date") state.checklist.object.acceptanceDate = field.value;
+  if (field.key === "time") {
+    const [startTime, endTime] = field.value.split("-").map((part) => part.trim());
+    if (startTime) state.checklist.object.startTime = startTime;
+    if (endTime) state.checklist.object.endTime = endTime;
+  }
+}
 
 if (typeof document !== "undefined") document.addEventListener("change", (event) => {
   const input = event.target;
