@@ -761,6 +761,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
+const APP_VERSION = "v0.5-edit-import";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -856,6 +857,7 @@ const defaultChecklist = {
     vehicle: "",
     comment: ""
   },
+  manualFields: {},
   notes: "",
   updatedAt: new Date().toISOString()
 };
@@ -872,10 +874,23 @@ function loadChecklist() {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return structuredClone(defaultChecklist);
   try {
-    return { ...structuredClone(defaultChecklist), ...JSON.parse(raw) };
+    return normalizeChecklist({ ...structuredClone(defaultChecklist), ...JSON.parse(raw) });
   } catch {
     return structuredClone(defaultChecklist);
   }
+}
+
+function normalizeChecklist(checklist) {
+  checklist.profile = { ...defaultChecklist.profile, ...(checklist.profile || {}) };
+  checklist.object = { ...defaultChecklist.object, ...(checklist.object || {}) };
+  checklist.mileage = { ...defaultChecklist.mileage, ...(checklist.mileage || {}) };
+  checklist.manualFields = { ...(checklist.manualFields || {}) };
+  checklist.notes = checklist.notes || "";
+  checklist.materials = (checklist.materials || []).map((item) => ({
+    ...item,
+    category: item.category || classifyMaterial(item)
+  }));
+  return checklist;
 }
 
 function saveChecklist() {
@@ -929,7 +944,7 @@ function appHeader(title, subtitle = "Офлайн доступен") {
     <header class="app-header">
       <div>
         <div class="app-title">${title}</div>
-        <div class="app-subtitle">${subtitle}</div>
+        <div class="app-subtitle">${subtitle} · ${APP_VERSION}</div>
       </div>
       <button class="avatar" data-action="home" aria-label="На главную">A</button>
     </header>
@@ -985,6 +1000,7 @@ function renderCreate() {
 
       <h2>Загрузить файлы</h2>
       ${documentsList()}
+      ${uploadResultNotice()}
       <div class="notice">После загрузки ТЗ и накладных данные автоматически попадут в раздел “Чек-лист”. Сейчас Excel-накладная уже читается автоматически.</div>
       <button class="secondary wide" data-screen="checklist">Открыть созданный чек-лист · ${s.autofillPercent}%</button>
     </section>
@@ -1008,6 +1024,14 @@ function documentsList() {
           </label>
         </article>
       `).join("");
+}
+
+function uploadResultNotice() {
+  const lastRecognized = state.checklist.documents
+    .filter((doc) => doc.status === "recognized" || doc.status === "error")
+    .at(-1);
+  if (!lastRecognized) return "";
+  return `<div class="notice compact-note">Последняя обработка: ${escapeHtml(lastRecognized.fileName)} · ${escapeHtml(lastRecognized.note)}</div>`;
 }
 
 function renderChecklist() {
@@ -1062,7 +1086,7 @@ function getChecklistSections(s) {
       title: "Система питания BTS",
       required: true,
       meta: sectionMeta("заполнено", "green", true),
-      body: fieldGrid([
+      body: fieldGrid("bts", [
         ["Система", "B201 · 3 фазы", "PDF", "ok", true],
         ["Rectifier", "ZXD3000 · 4 шт.", "PDF/Excel", "ok", true],
         ["DCPD", "DCPD10 · 2 шт.", "PDF", "ok", true],
@@ -1089,7 +1113,7 @@ function getChecklistSections(s) {
       title: "Платы BBU 8200",
       required: true,
       meta: sectionMeta("проверить", "yellow", true),
-      body: fieldGrid([
+      body: fieldGrid("bbu8200", [
         ["CCFB", "1 шт.", "PDF", "ok", true],
         ["FS5A / FS3A", "расхождение в накладных", "Excel", "review", true],
         ["BPQ2", "2 шт.", "PDF", "ok"],
@@ -1101,7 +1125,7 @@ function getChecklistSections(s) {
       title: "Платы BBU 9200",
       required: false,
       meta: sectionMeta("частично", "yellow"),
-      body: fieldGrid([
+      body: fieldGrid("bbu9200", [
         ["VEMc1", "1 шт.", "PDF", "ok"],
         ["VPDc1", "1 шт.", "PDF", "ok"],
         ["VFC1", "1 шт.", "PDF", "ok"]
@@ -1238,8 +1262,15 @@ function sourceField(label, value, source, status = "ok", required = false, edit
   </article>`;
 }
 
-function fieldGrid(items) {
-  return `<div class="field-grid">${items.map(([label, value, source, status = "ok", required = false]) => sourceField(label, value, source, status, required)).join("")}</div>`;
+function fieldGrid(scope, items) {
+  return `<div class="field-grid">${items.map(([label, value, source, status = "ok", required = false]) => {
+    const key = `${scope}.${label}`;
+    return sourceField(label, manualFieldValue(key, value), source, status, required, `data-manual-field="${escapeHtml(key)}"`);
+  }).join("")}</div>`;
+}
+
+function manualFieldValue(key, fallback) {
+  return state.checklist.manualFields?.[key] ?? fallback;
 }
 
 function sectionMeta(text, tone = "blue", required = false) {
@@ -1490,6 +1521,10 @@ if (typeof document !== "undefined") document.addEventListener("input", (event) 
       saveChecklist();
     }
   }
+  if (input.dataset?.manualField) {
+    state.checklist.manualFields[input.dataset.manualField] = input.value;
+    saveChecklist();
+  }
   if ("notes" in input.dataset) {
     state.checklist.notes = input.value;
     saveChecklist();
@@ -1521,6 +1556,10 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
     if (doc) {
       doc.fileName = fileName;
       doc.status = "manual";
+      doc.note = "чтение файла...";
+      applyFileNameHints(fileName);
+      saveChecklist();
+      render();
       if (fileName.toLowerCase().endsWith(".xlsx")) {
         parseXlsxDeliveryNote(input.files[0])
           .then((result) => {
@@ -1531,6 +1570,7 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
               state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${result.siteName}`;
             }
             state.checklist.materials = mergeParsedMaterials(result.materials, state.checklist.materials);
+            applyMaterialHintsToChecklist();
             saveChecklist();
             render();
           })
@@ -1541,6 +1581,7 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
             render();
           });
       } else {
+        doc.note = "файл прикреплен, автопарсинг будет добавлен следующим этапом";
         saveChecklist();
         render();
       }
@@ -1556,6 +1597,44 @@ if (typeof document !== "undefined") document.addEventListener("change", (event)
     }
   }
 });
+
+function applyFileNameHints(fileName) {
+  const normalized = fileName.replace(/\.[^.]+$/, "");
+  const siteMatch = normalized.match(/([A-Za-z]{2,}[-_A-Za-z0-9]*?)\s*\(?(\d{4,6})\)?/);
+  const idMatch = normalized.match(/\b(\d{4,6})\b/);
+  if (siteMatch) {
+    state.checklist.object.siteName = siteMatch[1].replace(/[_-]+$/, "");
+    state.checklist.object.siteId = siteMatch[2];
+  } else if (idMatch) {
+    state.checklist.object.siteId = idMatch[1];
+  }
+  state.checklist.fields[0].value = `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`;
+}
+
+function applyMaterialHintsToChecklist() {
+  const count = (category, pattern = null) => state.checklist.materials
+    .filter((item) => materialCategory(item) === category && (!pattern || pattern.test(`${item.name} ${item.code}`.toLowerCase())))
+    .reduce((total, item) => total + (Number(String(item.qty).replace(",", ".")) || 0), 0);
+  const names = (category) => [...new Set(state.checklist.materials
+    .filter((item) => materialCategory(item) === category)
+    .map((item) => item.name)
+    .filter(Boolean))]
+    .slice(0, 3)
+    .join(" · ");
+
+  updateField("power", `Питание: ${count("power")} поз./шт. · ${names("power") || "нет данных"}`, "Excel");
+  updateField("battery", `АКБ/питание: ${names("power") || "нет данных"}`, "Excel");
+  updateField("bts", `RRU: ${count("rru")} · BBU: ${count("bbu")} · Антенны: ${count("antenna")}`, "Excel");
+  updateField("cabinets", names("cabinet") || state.checklist.fields.find((field) => field.key === "cabinets")?.value || "", "Excel");
+}
+
+function updateField(key, value, source = "Excel") {
+  const field = state.checklist.fields.find((item) => item.key === key);
+  if (!field || !value) return;
+  field.value = value;
+  field.source = source;
+  field.status = "ok";
+}
 
 render();
 
