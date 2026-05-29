@@ -835,7 +835,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.13-report-export";
+const APP_VERSION = "v0.14-send-channels";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -1326,6 +1326,7 @@ function photosGrid() {
 }
 
 function sendPanel(s) {
+  const submitLabel = s.canSubmit ? `Отправить через ${channelLabel(state.checklist.sendChannel)}` : "Заполнить обязательные поля";
   return `
       <h2>Предупреждения</h2>
       ${s.warnings.map((warning) => `<div class="warning">! <span>${warning}</span></div>`).join("")}
@@ -1334,7 +1335,7 @@ function sendPanel(s) {
         ${["email", "whatsapp", "telegram"].map((channel) => `<button class="${state.checklist.sendChannel === channel ? "active" : ""}" data-channel="${channel}">${channelLabel(channel)}</button>`).join("")}
       </div>
       ${reportPreview(s)}
-      <button class="primary wide" data-action="submit">${s.canSubmit ? "Отправить" : "Заполнить обязательные поля"}</button>
+      <button class="primary wide" data-action="submit">${submitLabel}</button>
   `;
 }
 
@@ -1590,6 +1591,52 @@ function generateExcelReport() {
   downloadFile(reportFileName("xls"), html, "application/vnd.ms-excel;charset=utf-8");
 }
 
+function sendReport() {
+  const s = summary(state.checklist);
+  if (!s.canSubmit) {
+    state.checklist.status = "draft";
+    saveChecklist();
+    render();
+    return;
+  }
+
+  state.checklist.status = "pending";
+  saveChecklist();
+  const message = shareMessage(state.checklist, s);
+  const subject = `Gefest Cl: ${state.checklist.object.siteId} ${state.checklist.object.siteName}`;
+
+  if (state.checklist.sendChannel === "email") {
+    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(message)}`;
+  } else if (state.checklist.sendChannel === "whatsapp") {
+    openShareUrl(`https://wa.me/?text=${encodeURIComponent(message)}`);
+  } else if (state.checklist.sendChannel === "telegram") {
+    openShareUrl(`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(message)}`);
+  }
+  render();
+}
+
+function openShareUrl(url) {
+  const opened = window.open(url, "_blank");
+  if (!opened) window.location.href = url;
+}
+
+function shareMessage(checklist = state.checklist, s = summary(checklist)) {
+  return [
+    `Gefest Cl: ${checklist.object.siteId} · ${checklist.object.siteName}`,
+    `Бригадир: ${checklist.profile.brigadierFullName} · ${checklist.profile.phone}`,
+    `Организация: ${checklist.profile.contractorCompany}`,
+    `Заказчик: ${checklist.profile.customer}`,
+    `Тип работ: ${checklist.object.workType}`,
+    `Пробег: ${checklist.mileage.totalKm || "-"} км`,
+    `Маршрут: ${checklist.mileage.departurePoint} → ${checklist.mileage.objectDestination} → ${checklist.mileage.returnDestination}`,
+    `Готовность: ${s.autofillPercent}% · проверить ${s.reviewFieldCount} · фото ${checklist.photos.filter((photo) => photo.attached).length}/${checklist.photos.length}`,
+    `Материалы: ${checklist.materials.length} позиций · расхождений ${checklist.deliveryMismatches.length}`,
+    `Замечания: ${checklist.notes || "нет"}`,
+    "",
+    "PDF/Excel сформированы в приложении Gefest Cl."
+  ].join("\n");
+}
+
 function printableReportHtml() {
   const s = summary(state.checklist);
   return `<!doctype html>
@@ -1755,10 +1802,7 @@ if (typeof document !== "undefined") document.addEventListener("click", (event) 
   if (target.dataset.action === "generate-pdf") generatePdfReport();
   if (target.dataset.action === "generate-excel") generateExcelReport();
   if (target.dataset.action === "submit") {
-    const s = summary(state.checklist);
-    state.checklist.status = s.canSubmit ? "pending" : "draft";
-    saveChecklist();
-    render();
+    sendReport();
   }
 });
 
@@ -2156,7 +2200,8 @@ export const __gefestTestApi = {
   mergeParsedMaterials,
   classifyMaterial,
   compareDeliveryNotes,
-  mergeDeliveryMaterials
+  mergeDeliveryMaterials,
+  shareMessage
 };
 
 function mergeParsedMaterials(parsed, previous) {
