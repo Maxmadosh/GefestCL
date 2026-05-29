@@ -58,7 +58,10 @@ exports.handler = async (event) => {
   const telegramResult = await sendTelegram(record);
   if (telegramResult.configured) deliveries.push(telegramResult);
 
-  const webhookResult = await forwardWebhook(record);
+  const n8nResult = await forwardWebhook(record, process.env.N8N_WEBHOOK_URL, "n8n");
+  if (n8nResult.configured) deliveries.push(n8nResult);
+
+  const webhookResult = await forwardWebhook(record, process.env.REPORT_WEBHOOK_URL, "webhook");
   if (webhookResult.configured) deliveries.push(webhookResult);
 
   const sentDeliveries = deliveries.filter((delivery) => delivery.ok);
@@ -111,9 +114,8 @@ async function sendTelegram(record) {
   return { configured: true, ok: true, channel: "telegram" };
 }
 
-async function forwardWebhook(record) {
-  const webhookUrl = process.env.REPORT_WEBHOOK_URL;
-  if (!webhookUrl) return { configured: false, channel: "webhook" };
+async function forwardWebhook(record, webhookUrl, channel) {
+  if (!webhookUrl) return { configured: false, channel };
 
   const response = await fetch(webhookUrl, {
     method: "POST",
@@ -121,8 +123,8 @@ async function forwardWebhook(record) {
     body: JSON.stringify(record)
   });
 
-  if (!response.ok) return { configured: true, ok: false, channel: "webhook", error: `HTTP ${response.status}` };
-  return { configured: true, ok: true, channel: "webhook" };
+  if (!response.ok) return { configured: true, ok: false, channel, error: `HTTP ${response.status}` };
+  return { configured: true, ok: true, channel };
 }
 
 function json(statusCode, body) {
