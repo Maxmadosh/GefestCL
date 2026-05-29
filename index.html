@@ -835,7 +835,7 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.12-clean-warnings";
+const APP_VERSION = "v0.13-report-export";
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -1520,13 +1520,7 @@ function channelLabel(channel) {
 
 function reportPreview(s) {
   const format = state.reportFormat || "pdf";
-  const rows = [
-    ["Сайт", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`],
-    ["Бригадир", `${state.checklist.profile.brigadierFullName} · ${state.checklist.profile.phone}`],
-    ["Тип работ", state.checklist.object.workType],
-    ["Пробег", `${state.checklist.mileage.totalKm || "-"} км · ${state.checklist.mileage.departurePoint} → ${state.checklist.mileage.objectDestination} → ${state.checklist.mileage.returnDestination}`],
-    ["Готовность", `${s.autofillPercent}% · ${s.reviewFieldCount} проверить · ${s.missingRequiredPhotos} фото`]
-  ];
+  const rows = reportRows(s);
   return `<article class="report-preview">
     <h2>Предпросмотр отчета</h2>
     <div class="report-actions">
@@ -1534,7 +1528,24 @@ function reportPreview(s) {
       <button class="${format === "excel" ? "active" : ""}" data-report-format="excel">Excel</button>
     </div>
     ${format === "excel" ? excelPreview(rows) : pdfPreview(rows)}
+    <div class="report-actions">
+      <button data-action="generate-pdf">Сформировать PDF</button>
+      <button data-action="generate-excel">Сформировать Excel</button>
+    </div>
   </article>`;
+}
+
+function reportRows(s = summary(state.checklist)) {
+  return [
+    ["Сайт", `${state.checklist.object.siteId} · ${state.checklist.object.siteName}`],
+    ["Бригадир", `${state.checklist.profile.brigadierFullName} · ${state.checklist.profile.phone}`],
+    ["Организация", state.checklist.profile.contractorCompany],
+    ["Заказчик", state.checklist.profile.customer],
+    ["Тип работ", state.checklist.object.workType],
+    ["Тип объекта", state.checklist.object.siteType],
+    ["Пробег", `${state.checklist.mileage.totalKm || "-"} км · ${state.checklist.mileage.departurePoint} → ${state.checklist.mileage.objectDestination} → ${state.checklist.mileage.returnDestination}`],
+    ["Готовность", `${s.autofillPercent}% · ${s.reviewFieldCount} проверить · ${s.missingRequiredPhotos} фото`]
+  ];
 }
 
 function pdfPreview(rows) {
@@ -1558,6 +1569,141 @@ function excelPreview(rows) {
       ${materialRows.map((row) => `<div class="table-row">${row.map((cell) => `<span>${escapeHtml(cell)}</span>`).join("")}</div>`).join("")}
     </div>
   `;
+}
+
+function generatePdfReport() {
+  const html = printableReportHtml();
+  const printWindow = window.open("", "_blank");
+  if (!printWindow) {
+    downloadFile(reportFileName("html"), html, "text/html;charset=utf-8");
+    return;
+  }
+  printWindow.document.open();
+  printWindow.document.write(html);
+  printWindow.document.close();
+  printWindow.focus();
+  setTimeout(() => printWindow.print(), 300);
+}
+
+function generateExcelReport() {
+  const html = excelReportHtml();
+  downloadFile(reportFileName("xls"), html, "application/vnd.ms-excel;charset=utf-8");
+}
+
+function printableReportHtml() {
+  const s = summary(state.checklist);
+  return `<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>${escapeHtml(reportTitle())}</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #142233; margin: 28px; }
+    h1 { margin: 0 0 6px; font-size: 24px; }
+    h2 { margin: 22px 0 8px; color: #168dcc; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; }
+    .meta { color: #78889a; margin-bottom: 18px; }
+    table { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+    th, td { border: 1px solid #dceaf3; padding: 8px; font-size: 12px; text-align: left; vertical-align: top; }
+    th { background: #e5f6fd; color: #168dcc; }
+    .ok { color: #199764; font-weight: 700; }
+    .warn { color: #a56c00; font-weight: 700; }
+    @media print { button { display: none; } body { margin: 16mm; } }
+  </style>
+</head>
+<body>
+  <button onclick="window.print()">Печать / Сохранить PDF</button>
+  <h1>Gefest Cl</h1>
+  <div class="meta">${escapeHtml(reportTitle())} · ${new Date().toLocaleString("ru-RU")}</div>
+  ${reportInfoTable(s)}
+  ${materialsReportTable()}
+  ${deliveryMismatchReportTable()}
+  ${photosReportTable()}
+  ${notesReportBlock()}
+</body>
+</html>`;
+}
+
+function excelReportHtml() {
+  const s = summary(state.checklist);
+  return `<!doctype html><html><head><meta charset="utf-8" /></head><body>
+    <h1>Gefest Cl</h1>
+    ${reportInfoTable(s)}
+    ${materialsReportTable()}
+    ${deliveryMismatchReportTable()}
+    ${photosReportTable()}
+    ${notesReportBlock()}
+  </body></html>`;
+}
+
+function reportInfoTable(s) {
+  return `<h2>Общие данные</h2><table>
+    <tr><th>Поле</th><th>Значение</th></tr>
+    ${reportRows(s).map(([label, value]) => `<tr><td>${escapeHtml(label)}</td><td>${escapeHtml(value)}</td></tr>`).join("")}
+  </table>`;
+}
+
+function materialsReportTable() {
+  return `<h2>Материалы</h2><table>
+    <tr><th>№</th><th>Код</th><th>Наименование</th><th>Кол-во</th><th>Ед.</th><th>Статус</th><th>Комментарий</th></tr>
+    ${state.checklist.materials.map((item) => `<tr>
+      <td>${escapeHtml(item.no)}</td>
+      <td>${escapeHtml(item.code)}</td>
+      <td>${escapeHtml(item.name)}</td>
+      <td>${escapeHtml(item.qty)}</td>
+      <td>${escapeHtml(item.unit)}</td>
+      <td>${escapeHtml(item.status)}</td>
+      <td>${escapeHtml(item.note || "")}</td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+function deliveryMismatchReportTable() {
+  if (!state.checklist.deliveryMismatches.length) return `<h2>Расхождения накладных</h2><p class="ok">Не найдены</p>`;
+  return `<h2>Расхождения накладных</h2><table>
+    <tr><th>№</th><th>Позиция</th><th>Детали</th></tr>
+    ${state.checklist.deliveryMismatches.map((item) => `<tr>
+      <td>${escapeHtml(item.no)}</td>
+      <td>${escapeHtml(item.title)}</td>
+      <td>${escapeHtml(item.details)}</td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+function photosReportTable() {
+  return `<h2>Фото-реестр</h2><table>
+    <tr><th>Категория</th><th>Обяз.</th><th>Статус</th><th>Файл</th></tr>
+    ${state.checklist.photos.map((photo) => `<tr>
+      <td>${escapeHtml(photo.category)}</td>
+      <td>${photo.required ? "да" : "нет"}</td>
+      <td>${photo.attached ? "есть" : "нет"}</td>
+      <td>${escapeHtml(photo.fileName || "")}</td>
+    </tr>`).join("")}
+  </table>`;
+}
+
+function notesReportBlock() {
+  return `<h2>Замечания</h2><p>${escapeHtml(state.checklist.notes || "Нет замечаний")}</p>`;
+}
+
+function reportTitle() {
+  return `${state.checklist.object.siteId || "site"}-${state.checklist.object.siteName || "checklist"}`;
+}
+
+function reportFileName(ext) {
+  return `GefestCL-${reportTitle().replace(/[^\p{L}\p{N}_-]+/gu, "_")}.${ext}`;
+}
+
+function downloadFile(fileName, content, mimeType) {
+  const blob = new Blob([content], { type: mimeType });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function render() {
@@ -1606,6 +1752,8 @@ if (typeof document !== "undefined") document.addEventListener("click", (event) 
     state.reportFormat = target.dataset.reportFormat;
     render();
   }
+  if (target.dataset.action === "generate-pdf") generatePdfReport();
+  if (target.dataset.action === "generate-excel") generateExcelReport();
   if (target.dataset.action === "submit") {
     const s = summary(state.checklist);
     state.checklist.status = s.canSubmit ? "pending" : "draft";
