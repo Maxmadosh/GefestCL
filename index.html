@@ -591,6 +591,30 @@ small {
   font-weight: 900;
 }
 
+.send-status {
+  margin-bottom: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--blue-soft);
+  color: var(--blue-dark);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.35;
+}
+
+.send-status.green {
+  border-color: rgba(48, 185, 121, .35);
+  background: #e8f8f1;
+  color: #199764;
+}
+
+.send-status.yellow {
+  border-color: #f4d181;
+  background: #fff9ea;
+  color: #8a6200;
+}
+
 .channel-row {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -835,7 +859,8 @@ small {
     <div id="app"></div>
     <script type="module">
 const STORAGE_KEY = "gefest-cl-checklist";
-const APP_VERSION = "v0.14-send-channels";
+const APP_VERSION = "v0.15-backend-submit";
+const REPORT_API_ENDPOINT = getReportApiEndpoint();
 
 const defaultChecklist = {
   id: "54469-osk-shkola65cow",
@@ -938,9 +963,16 @@ let state = {
   screen: "create",
   problemOnly: false,
   reportFormat: "pdf",
+  lastSendResult: null,
   openSections: new Set(["general"]),
   checklist: loadChecklist()
 };
+
+function getReportApiEndpoint() {
+  if (typeof window === "undefined") return "";
+  if (window.GEFEST_REPORT_API) return window.GEFEST_REPORT_API;
+  return window.location.hostname.includes("netlify.app") ? "/.netlify/functions/submit-report" : "";
+}
 
 function loadChecklist() {
   if (typeof localStorage === "undefined") return structuredClone(defaultChecklist);
@@ -1330,6 +1362,7 @@ function sendPanel(s) {
   return `
       <h2>Предупреждения</h2>
       ${s.warnings.map((warning) => `<div class="warning">! <span>${warning}</span></div>`).join("")}
+      ${state.lastSendResult ? `<div class="send-status ${state.lastSendResult.tone}">${escapeHtml(state.lastSendResult.text)}</div>` : ""}
       <h2>Канал отправки</h2>
       <div class="channel-row">
         ${["email", "whatsapp", "telegram"].map((channel) => `<button class="${state.checklist.sendChannel === channel ? "active" : ""}" data-channel="${channel}">${channelLabel(channel)}</button>`).join("")}
@@ -1591,18 +1624,31 @@ function generateExcelReport() {
   downloadFile(reportFileName("xls"), html, "application/vnd.ms-excel;charset=utf-8");
 }
 
-function sendReport() {
+async function sendReport() {
   const s = summary(state.checklist);
   if (!s.canSubmit) {
     state.checklist.status = "draft";
+    state.lastSendResult = { tone: "yellow", text: "Сначала заполните пробег и обязательные фото." };
     saveChecklist();
     render();
     return;
   }
 
   state.checklist.status = "pending";
+  state.lastSendResult = { tone: "blue", text: "Готовлю отчет к отправке." };
   saveChecklist();
+  render();
+
   const message = shareMessage(state.checklist, s);
+  const backendResult = await sendReportToBackend(message, s);
+  if (backendResult.sent) {
+    state.checklist.status = "sent";
+    state.lastSendResult = { tone: "green", text: `Отчет принят сервером. ID: ${backendResult.id}` };
+    saveChecklist();
+    render();
+    return;
+  }
+
   const subject = `Gefest Cl: ${state.checklist.object.siteId} ${state.checklist.object.siteName}`;
 
   if (state.checklist.sendChannel === "email") {
@@ -1612,7 +1658,33 @@ function sendReport() {
   } else if (state.checklist.sendChannel === "telegram") {
     openShareUrl(`https://t.me/share/url?url=${encodeURIComponent(location.href)}&text=${encodeURIComponent(message)}`);
   }
+  state.lastSendResult = { tone: backendResult.error ? "yellow" : "blue", text: backendResult.error ? `Сервер не принял отчет, открыт выбранный канал. ${backendResult.error}` : "Открыт выбранный канал отправки." };
   render();
+}
+
+async function sendReportToBackend(message, s) {
+  if (!REPORT_API_ENDPOINT || typeof fetch === "undefined") return { sent: false };
+  try {
+    const response = await fetch(REPORT_API_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        appVersion: APP_VERSION,
+        submittedAt: new Date().toISOString(),
+        channel: state.checklist.sendChannel,
+        checklist: state.checklist,
+        summary: s,
+        message,
+        pdfHtml: printableReportHtml(),
+        excelHtml: excelReportHtml()
+      })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok || !data.ok) return { sent: false, error: data.error || `HTTP ${response.status}` };
+    return { sent: true, id: data.id || "без номера" };
+  } catch (error) {
+    return { sent: false, error: error.message };
+  }
 }
 
 function openShareUrl(url) {
@@ -2201,7 +2273,8 @@ export const __gefestTestApi = {
   classifyMaterial,
   compareDeliveryNotes,
   mergeDeliveryMaterials,
-  shareMessage
+  shareMessage,
+  getReportApiEndpoint
 };
 
 function mergeParsedMaterials(parsed, previous) {
