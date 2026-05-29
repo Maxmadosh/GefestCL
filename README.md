@@ -34,13 +34,16 @@ The app works on GitHub Pages without a backend. On Netlify it will try to POST 
 
 Set these Netlify environment variables for automatic delivery:
 
+- `N8N_WEBHOOK_URL` to send reports into an n8n workflow.
 - `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to send reports directly to Telegram.
 - `REPORT_WEBHOOK_URL` to forward the full report JSON to an automation service, email service, CRM, or custom backend.
 
 If no delivery variable is configured, the app falls back to client-side Email/WhatsApp/Telegram sharing.
 
+Recommended production route: Gefest Cl -> Netlify Function -> n8n webhook -> Telegram/email/Drive/Sheets/CRM. WhatsApp is also possible through n8n, but it needs a WhatsApp Business provider.
+
 ## Next
 
 - add real DOCX/XLSX parsing
-- deploy the Netlify backend and configure Telegram variables
+- deploy the Netlify backend and configure `N8N_WEBHOOK_URL`
 - add OCR for PDF/JPEG and equipment photos
