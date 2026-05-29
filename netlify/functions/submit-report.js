@@ -54,15 +54,66 @@ exports.handler = async (event) => {
     excelHtml: payload.excelHtml
   };
 
-  const webhookUrl = process.env.REPORT_WEBHOOK_URL;
-  if (!webhookUrl) {
+  const deliveries = [];
+  const telegramResult = await sendTelegram(record);
+  if (telegramResult.configured) deliveries.push(telegramResult);
+
+  const webhookResult = await forwardWebhook(record);
+  if (webhookResult.configured) deliveries.push(webhookResult);
+
+  const sentDeliveries = deliveries.filter((delivery) => delivery.ok);
+  if (sentDeliveries.length) {
+    return json(200, {
+      ok: true,
+      id,
+      deliveries: sentDeliveries.map((delivery) => delivery.channel)
+    });
+  }
+
+  if (!deliveries.length) {
     return json(503, {
       ok: false,
       id,
-      error: "REPORT_WEBHOOK_URL is not configured",
+      error: "No delivery channel is configured",
       preview: publicPreview(record)
     });
   }
+
+  return json(502, {
+    ok: false,
+    id,
+    error: deliveries.map((delivery) => `${delivery.channel}: ${delivery.error}`).join("; "),
+    preview: publicPreview(record)
+  });
+};
+
+async function sendTelegram(record) {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  const chatId = process.env.TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return { configured: false, channel: "telegram" };
+
+  const response = await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      chat_id: chatId,
+      parse_mode: "HTML",
+      disable_web_page_preview: true,
+      text: telegramText(record)
+    })
+  });
+
+  if (!response.ok) {
+    const body = await response.text().catch(() => "");
+    return { configured: true, ok: false, channel: "telegram", error: `HTTP ${response.status} ${body}`.trim() };
+  }
+
+  return { configured: true, ok: true, channel: "telegram" };
+}
+
+async function forwardWebhook(record) {
+  const webhookUrl = process.env.REPORT_WEBHOOK_URL;
+  if (!webhookUrl) return { configured: false, channel: "webhook" };
 
   const response = await fetch(webhookUrl, {
     method: "POST",
@@ -70,12 +121,9 @@ exports.handler = async (event) => {
     body: JSON.stringify(record)
   });
 
-  if (!response.ok) {
-    return json(502, { ok: false, id, error: `Webhook HTTP ${response.status}` });
-  }
-
-  return json(200, { ok: true, id });
-};
+  if (!response.ok) return { configured: true, ok: false, channel: "webhook", error: `HTTP ${response.status}` };
+  return { configured: true, ok: true, channel: "webhook" };
+}
 
 function json(statusCode, body) {
   return {
@@ -93,4 +141,36 @@ function publicPreview(record) {
     brigadier: record.brigadier,
     summary: record.summary
   };
+}
+
+function telegramText(record) {
+  const checklist = record.checklist || {};
+  const mileage = checklist.mileage || {};
+  const photos = Array.isArray(checklist.photos) ? checklist.photos : [];
+  const attachedPhotos = photos.filter((photo) => photo.attached).length;
+  const text = [
+    `<b>Gefest Cl</b>`,
+    `<b>${escapeTelegram(record.site.id)} · ${escapeTelegram(record.site.name)}</b>`,
+    ``,
+    `ID отчета: <code>${escapeTelegram(record.id)}</code>`,
+    `Бригадир: ${escapeTelegram(record.brigadier.name || "-")} · ${escapeTelegram(record.brigadier.phone || "-")}`,
+    `Организация: ${escapeTelegram(record.brigadier.company || "-")}`,
+    `Тип работ: ${escapeTelegram(checklist.object?.workType || "-")}`,
+    `Пробег: ${escapeTelegram(mileage.totalKm || "-")} км`,
+    `Маршрут: ${escapeTelegram(mileage.departurePoint || "-")} → ${escapeTelegram(mileage.objectDestination || "-")} → ${escapeTelegram(mileage.returnDestination || "-")}`,
+    `Фото: ${attachedPhotos}/${photos.length}`,
+    `Материалы: ${Array.isArray(checklist.materials) ? checklist.materials.length : 0} позиций`,
+    `Расхождения: ${Array.isArray(checklist.deliveryMismatches) ? checklist.deliveryMismatches.length : 0}`,
+    ``,
+    escapeTelegram(record.message || "")
+  ].join("\n");
+
+  return text.length > 3900 ? `${text.slice(0, 3900)}\n...` : text;
+}
+
+function escapeTelegram(value) {
+  return String(value ?? "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;");
 }
