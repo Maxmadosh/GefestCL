@@ -32,10 +32,15 @@ http://127.0.0.1:4173
 
 The app works on GitHub Pages without a backend. On Netlify it will try to POST the full checklist, printable PDF HTML, Excel HTML, and share text to `/.netlify/functions/submit-report`.
 
-Set `REPORT_WEBHOOK_URL` in Netlify environment variables to forward accepted reports to an automation service, email service, Telegram bot, or CRM webhook. If this variable is not configured, the app falls back to client-side Email/WhatsApp/Telegram sharing.
+Set these Netlify environment variables for automatic delivery:
+
+- `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` to send reports directly to Telegram.
+- `REPORT_WEBHOOK_URL` to forward the full report JSON to an automation service, email service, CRM, or custom backend.
+
+If no delivery variable is configured, the app falls back to client-side Email/WhatsApp/Telegram sharing.
 
 ## Next
 
 - add real DOCX/XLSX parsing
-- connect `REPORT_WEBHOOK_URL` to the final delivery channel
+- deploy the Netlify backend and configure Telegram variables
 - add OCR for PDF/JPEG and equipment photos
